@@ -3,7 +3,7 @@
 This checklist will go over test cases for Sprint 1 of the project with the focus of going over the foundation: requirements, UI wireframes, repo setup, architecture, and secure login prototype.
 
 ## Build & Launch
-- [ ] App repository builds successfully (Android and iOS)
+- [x] App repository builds successfully
   - Clone the repo
   - Install dependencies
     
@@ -38,3 +38,48 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
 - [ ] Checklist items trace back to Sprint 1 backlog goals
   - Confirm initial QA test cases file is committed. Review coverage against Sprint 1 backlog items
   - Expected: Test cases reviewed by Scrum Master and Product Owner
+     
+# Sprint 2 QA Checklist
+
+This checklist covers QA for Sprint 2, focusing on backend security, auditing, and patient data endpoints.
+
+## Environment & Build
+- [ ] Secrets hygiene
+- No secrets printed to console; DEBUG prints removed; .env only contains required keys.
+- [ ] Service boots clean
+- App starts without stack traces; health probe works.
+
+## Auth & Identity Hardening
+- [ ] Real JWT verification
+- Look into jwt.decode(..., options={"verify_signature": False}) to see if its vulnerable to false credential input.
+- [ ] Protect sensitive routes
+- All /patients/** and /audits/** require Authorization: Bearer <token> via Depends(HTTPBearer).
+- [ ] Trusted identity propagation
+- get_current_user() extracts email from verified token
+
+## Auditing
+- [ ] Uniform audit on protected calls
+- Every successful protected endpoint writes one audit row with: user_email, endpoint, action, timestamp (UTC ISO8601), status.
+- [ ] Non-blocking audit failures
+- If audit insert fails, request still returns; warning logged.
+- [ ] Audits listing contract
+- GET /audits/recent returns last 10, newest first; 404 if none.
+
+## Auth Routes
+- [ ] Signup/login behavior
+- /signup returns user_id and message; no raw password; role not trusted from request body.
+- [ ] Login tokens
+- /login returns access_token (and expires_in if available).
+- [ ] Invalid login path
+- Bad credentials → 400 with {"detail":"Invalid login"}.
+
+## Patient Data Routes
+- [ ] GET /patients/{id}, /allergies, /careplans, /conditions, /devices, /encounters, /imaging_studies, /immunizations, /medications, /observations, /procedures.
+- Auth required → 401/403 when missing/invalid.
+- 404 clarity when patient/resource not found (no 500s).
+- Field contract matches Supabase columns.
+- Audit event per call with distinct action (e.g., VIEW_PATIENT).
+
+## Logging & PII
+- [ ] Structured logging
+- INFO/WARN/ERROR only; no PII in logs; timestamps as UTC ISO8601.
