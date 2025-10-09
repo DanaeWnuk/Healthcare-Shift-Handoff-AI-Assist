@@ -1,43 +1,27 @@
-import {useState} from 'react'
-import {View, Text, TextInput, Button} from 'react-native'
-import {supabase} from '../supabaseClient'
+import { useEffect } from 'react'
+import { View, StyleSheet } from 'react-native'
+import { router } from 'expo-router'
+import BigLogo from '@/assets/biglogo';
+import {COLORS} from "@/constants/colors";
 
-export default function Index() {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [user, setUser] = useState<any>(null)
-
-    const signIn = async () => {
-        const {data, error} = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
-        if (error) console.log(error)
-        else setUser(data.user)
-    }
+export default function SplashScreen() {
+    useEffect(() => {
+        const timer = setTimeout(() => router.replace('/login' as any), 2000)
+        return () => clearTimeout(timer)
+    }, [])
 
     return (
-        <View style={{flex: 1, justifyContent: 'center', padding: 20}}>
-            {user ? (
-                <Text>Welcome {user.email}</Text>
-            ) : (
-                <>
-                    <TextInput
-                        placeholder="Email"
-                        value={email}
-                        onChangeText={setEmail}
-                        style={{borderWidth: 1, marginBottom: 8, padding: 8}}
-                    />
-                    <TextInput
-                        placeholder="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        style={{borderWidth: 1, marginBottom: 8, padding: 8}}
-                    />
-                    <Button title="Sign In" onPress={signIn}/>
-                </>
-            )}
+        <View style={styles.container}>
+            <BigLogo />
         </View>
-    )
+    );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+    },
+});

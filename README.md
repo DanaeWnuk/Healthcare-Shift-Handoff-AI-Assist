@@ -6,6 +6,7 @@ To run, clone the repo
 ```bash
 cd frontend; npm i;
 ```
+only ever run this in /frontend
 ```bash
 npx expo start
 ```
