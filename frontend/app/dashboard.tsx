@@ -1,9 +1,10 @@
 import React from "react";
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Banner from "@/components/banner";
+import Banner from "@/components/Banner";
 import * as colors from "@/constants/colors";
-import DocsPanel from "@/components/documentationPanel";
+import DocsPanel from "@/components/DocumentationPanel";
+import BottomToolbar from "@/components/BottomToolbar";
 
 const patients = ["Mr. Person One", "Mr. Person Two", "Mrs. Person One", "Mrs. Person Two"];
 
@@ -82,22 +83,7 @@ function MobileLayout() {
             ))}
 
             {/* Bottom Nav */}
-            <View
-                style={{
-                    flexDirection: "row",
-                    justifyContent: "space-around",
-                    backgroundColor: colors.COLORS.primary,
-                    borderRadius: 20,
-                    padding: 15,
-                    marginTop: 30,
-                }}
-            >
-                <Ionicons name="trash-outline" size={24} color="white" />
-                <Ionicons name="calendar-outline" size={24} color="white" />
-                <Ionicons name="home-outline" size={24} color="white" />
-                <Ionicons name="mail-outline" size={24} color="white" />
-                <Ionicons name="person-outline" size={24} color="white" />
-            </View>
+            <BottomToolbar />
         </ScrollView>
     );
 }
@@ -162,22 +148,7 @@ function TabletLayout() {
                 </ScrollView>
 
                 {/* Bottom Nav */}
-                <View
-                    style={{
-                        flexDirection: "row",
-                        justifyContent: "space-around",
-                        backgroundColor: colors.COLORS.primary,
-                        borderRadius: 20,
-                        padding: 15,
-                        marginTop: 20,
-                    }}
-                >
-                    <Ionicons name="trash-outline" size={24} color="white" />
-                    <Ionicons name="calendar-outline" size={24} color="white" />
-                    <Ionicons name="home-outline" size={24} color="white" />
-                    <Ionicons name="mail-outline" size={24} color="white" />
-                    <Ionicons name="person-outline" size={24} color="white" />
-                </View>
+                <BottomToolbar />
             </View>
 
             {/* Right Column */}
