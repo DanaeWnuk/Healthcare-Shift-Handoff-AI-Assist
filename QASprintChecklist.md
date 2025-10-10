@@ -7,7 +7,7 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
   - Clone the repo
   - Install dependencies
     
-- [ ] App launches to the **Login screen** without fatal errors
+- [x] App launches to the **Login screen** without fatal errors
   - Run the application on Android and iOS
   - Expected: App builds and opens on the Login screen without fatal errors
 
