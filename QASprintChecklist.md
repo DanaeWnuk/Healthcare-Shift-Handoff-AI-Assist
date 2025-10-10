@@ -4,12 +4,12 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
 
 ## Build & Launch
 - [x] App repository builds successfully
-  - Clone the repo
-  - Install dependencies
+  - Clone the repo (Tested 10/3/2025)
+  - Install dependencies (Tested 10/3/2025)
     
 - [x] App launches to the **Login screen** without fatal errors
-  - Run the application on Android and iOS
-  - Expected: App builds and opens on the Login screen without fatal errors
+  - Run the application on Android and iOS (Tested 10/10/2025)
+  - Expected: App builds and opens on the Login screen without fatal errors (Tested 10/10/2025)
 
 ## Authentication Prototype
 - [ ] Successful login via **OAuth** redirects back and stores token securely
