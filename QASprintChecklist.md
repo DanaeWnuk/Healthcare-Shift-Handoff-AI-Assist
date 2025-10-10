@@ -28,7 +28,7 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
 ## UI Wireframes (Review and Validation) & Test Cases (QA Deliverables)
 - [x] Login screen wireframe matches agreed design (Tested 10/10/2025)
 - [ ] SBAR handoff template wireframe includes **Situation, Background, Assessment, and Recommendation**
-- [x] Initial QA test cases documented in repo
+- [x] Initial QA test cases documented in repo (Tested 10/10/2025)
 - [ ] Checklist items trace back to Sprint 1 backlog goals
   - Confirm initial QA test cases file is committed. Review coverage against Sprint 1 backlog items
   - Expected: Test cases reviewed by Scrum Master and Product Owner
@@ -38,9 +38,9 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
 This checklist covers QA for Sprint 2, focusing on backend security, auditing, and patient data endpoints.
 
 ## Environment & Build
-- [ ] Secrets hygiene
+- [ ] Secrets hygiene (Tested 10/10/2025, likely put in to confirm testing, will need to remove when product is close to being finished.)
 - No secrets printed to console; DEBUG prints removed; .env only contains required keys.
-- [ ] Service boots clean
+- [x] Service boots clean (Tested 10/10/2025)
 - App starts without stack traces; health probe works.
 
 ## Auth & Identity Hardening
