@@ -25,16 +25,10 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
   - Try to navigate manually to a protected page while logged out
   - Expected: Redirect to login, no access granted
 
-## UI Wireframes (Review and Validation)
-- [ ] Login screen wireframe matches agreed design
+## UI Wireframes (Review and Validation) & Test Cases (QA Deliverables)
+- [x] Login screen wireframe matches agreed design (Tested 10/10/2025)
 - [ ] SBAR handoff template wireframe includes **Situation, Background, Assessment, and Recommendation**
-- [ ] Wireframes are reviewed by Product Owner for clarity and usability
-  - Compare the wireframes against backlog requirements
-  - Expected: Wireframes reviewed and approved by Product Owner for clarity and usability
-
-## Test Cases (QA Deliverables)
-- [ ] Initial QA test cases documented in repo
-- [ ] Test cases reviewed by Scrum Master & Product Owner
+- [x] Initial QA test cases documented in repo
 - [ ] Checklist items trace back to Sprint 1 backlog goals
   - Confirm initial QA test cases file is committed. Review coverage against Sprint 1 backlog items
   - Expected: Test cases reviewed by Scrum Master and Product Owner
