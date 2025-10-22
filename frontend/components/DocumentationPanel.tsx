@@ -1,14 +1,52 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    TextInput,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as colors from "../constants/colors"; // adjust path if needed
+import * as colors from "../constants/colors";
 
 export default function DocsPanel() {
+    const [situation, setSituation] = useState("");
+    const [background, setBackground] = useState("");
+    const [assessment, setAssessment] = useState("");
+    const [recommendation, setRecommendation] = useState("");
+
+    const handleSave = () => {
+        const note = { situation, background, assessment, recommendation };
+        console.log("Saving SBAR note:", note);
+        alert("SBAR note saved (front end only for now)");
+    };
+
+    const renderSection = (label: string, value: string, onChange: (t: string) => void) => (
+        <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{label}</Text>
+            <TextInput
+                style={styles.textInput}
+                multiline
+                placeholder={`Enter ${label.toLowerCase()} here...`}
+                value={value}
+                onChangeText={onChange}
+                textAlignVertical="top"
+                placeholderTextColor="#999"
+            />
+        </View>
+    );
+
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.container}
+        >
             {/* Header */}
             <View style={styles.headerRow}>
-                <Text style={styles.title}>Documentation / Notes</Text>
+                <Text style={styles.title}>Documentation / SBAR Notes</Text>
                 <View style={styles.iconRow}>
                     <TouchableOpacity style={styles.iconButton}>
                         <Ionicons name="create-outline" size={20} color="#000" />
@@ -16,17 +54,20 @@ export default function DocsPanel() {
                     <TouchableOpacity style={styles.iconButton}>
                         <Ionicons name="add-outline" size={22} color="#000" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton}>
+                    <TouchableOpacity style={styles.iconButton} onPress={handleSave}>
                         <Ionicons name="save-outline" size={22} color="#000" />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Content Box */}
-            <View style={styles.innerBox}>
-                {/* TODO: add editable text input or notes content */}
-            </View>
-        </View>
+            {/* Content */}
+            <ScrollView style={styles.innerBox} contentContainerStyle={{ paddingBottom: 30 }}>
+                {renderSection("Situation", situation, setSituation)}
+                {renderSection("Background", background, setBackground)}
+                {renderSection("Assessment", assessment, setAssessment)}
+                {renderSection("Recommendation", recommendation, setRecommendation)}
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -57,11 +98,31 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         padding: 6,
         borderRadius: 8,
-        elevation: 2, // subtle shadow
+        elevation: 2,
     },
     innerBox: {
         flex: 1,
         backgroundColor: "#fff",
         borderRadius: 10,
+        padding: 10,
+    },
+    section: {
+        marginBottom: 15,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: "bold",
+        marginBottom: 5,
+        color: "#333",
+    },
+    textInput: {
+        minHeight: 80,
+        borderColor: "#ccc",
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 10,
+        fontSize: 14,
+        color: "#000",
+        backgroundColor: "#fafafa",
     },
 });
