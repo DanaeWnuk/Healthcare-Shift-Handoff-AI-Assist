@@ -3,6 +3,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from langchain import LLMChain, PromptTemplate #LLMChain is used to interact with LLMs with PromptTemplate, which is used to make templates for prompts for LLMs. 
+from langchain.llms import HuggingFaceHub #Provides an interface to interact with models hosted on the Hugging Face Hub.
+from fastapi.middleware.cors import CORSMiddleware #Essential for handling Cross-Origin Resource Sharing (CORS) issues.
 import os
 from datetime import datetime, timezone
 import logging
@@ -14,6 +17,8 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = "your_huggingface_token_here" #When run locally use your own token. You can get a token for free by creating a hugging face account. Learn more about Hugging Face Tokens here: https://huggingface.co/docs/hub/en/security-tokens
+
 print("DEBUG: SUPABASE_URL =", SUPABASE_URL)
 print("DEBUG: SUPABASE_KEY starts with =", SUPABASE_KEY[:8] if SUPABASE_KEY else None)
 
@@ -23,7 +28,52 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI()
 security = HTTPBearer()
+app.add_middleware( #CORS configuration
+    CORSMiddleware,
+    allow_origins = ["*"], 
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
 
+# ---- Model ---- FAIR WARNING I am not 100% sure that this is where this should go within the code, but I'm putting it here for now. If you would prefer this somewhere else, please move it. #
+class NoteRequest(BaseModel):
+    situation: str
+    background: str
+    assessment: str
+    recommendation: str
+
+# ---- LangChain Setup ---- #Again, move this if its not where you think it should be in the code. Do make sure to keep it below the Model section though. #
+template = """
+You are a helpful clinical assistant. You recieve a doctor's note written in the SBAR format:
+- Situation
+- Background
+- Assessment
+- Recommendation
+
+Please summarize this note into a concise, medically appropriate summary for another clinician.
+Maintain important clinical details and avoid redundancy.
+
+SBAR Note:
+Situation: {situation}
+Background: {background}
+Assessment: {assessment}
+Recommendation: {recommendation}
+
+Summary:
+"""
+
+prompt = PromptTemplate(
+    template = template,
+    input_variables = ["situation", "background", "assessment", "recommendation"]
+)
+
+llm = HuggingFaceHub(
+    repo_id = "EleutherAI/gpt-neo-2.7B",
+    model_kwargs = {"temperature": 0.5, "max_new_jtokens": 150}
+)
+
+chain = LLMChain(llm = llm, prompt = prompt)
 # Gets current user, currently not implemented and intended for future use
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -73,6 +123,17 @@ class UserLogin(BaseModel):
     password: str
 
 # --------Auth Routes----------
+
+@app.post("/summarize") #Accepts POST requests from the frontend holding the doctor's note to be summarized, then it sends the note to be summarized, then it returns the summarized note !!!MOVE IF IT'S NOT IN THE CORRECT SPOT!!!
+async def summarize(note: NoteRequest):
+    summary = chain.run(
+        situation = note.situation,
+        background = note.background,
+        assessment = note.assessment,
+        recommendation = note.recommendation,
+    )
+    return {"summary": summary.strip()}
+
 @app.post("/signup")
 def signup(user: UserSignUp, request: Request):
     response = supabase.auth.sign_up({
