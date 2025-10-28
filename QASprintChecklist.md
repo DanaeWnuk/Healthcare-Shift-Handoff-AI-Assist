@@ -33,7 +33,7 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
   - Confirm initial QA test cases file is committed. Review coverage against Sprint 1 backlog items
   - Expected: Test cases reviewed by Scrum Master and Product Owner
      
-# Sprint 2 QA Checklist
+# Sprint 2-3 QA Checklist
 
 This checklist covers QA for Sprint 2, focusing on backend security, auditing, and patient data endpoints.
 
@@ -64,6 +64,6 @@ This checklist covers QA for Sprint 2, focusing on backend security, auditing, a
 - Auth required → 401/403 when missing/invalid.
 - 404 clarity when patient/resource not found (no 500s).
 
-# Sprint 3 QA Checklist
+# Sprint 4 QA Checklist
 - Field contract matches Supabase columns.
 - Audit event per call with distinct action (e.g., VIEW_PATIENT).
