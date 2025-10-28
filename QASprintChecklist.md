@@ -63,5 +63,7 @@ This checklist covers QA for Sprint 2, focusing on backend security, auditing, a
 - [ ] GET /patients/{id}, /allergies, /careplans, /conditions, /devices, /encounters, /imaging_studies, /immunizations, /medications, /observations, /procedures.
 - Auth required → 401/403 when missing/invalid.
 - 404 clarity when patient/resource not found (no 500s).
+
+# Sprint 3 QA Checklist
 - Field contract matches Supabase columns.
 - Audit event per call with distinct action (e.g., VIEW_PATIENT).
