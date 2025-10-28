@@ -51,14 +51,6 @@ This checklist covers QA for Sprint 2, focusing on backend security, auditing, a
 - [ ] Trusted identity propagation
 - get_current_user() extracts email from verified token
 
-## Auditing
-- [ ] Uniform audit on protected calls
-- Every successful protected endpoint writes one audit row with: user_email, endpoint, action, timestamp (UTC ISO8601), status.
-- [ ] Non-blocking audit failures
-- If audit insert fails, request still returns; warning logged.
-- [ ] Audits listing contract
-- GET /audits/recent returns last 10, newest first; 404 if none.
-
 ## Auth Routes
 - [ ] Signup/login behavior
 - /signup returns user_id and message; no raw password; role not trusted from request body.
@@ -73,7 +65,3 @@ This checklist covers QA for Sprint 2, focusing on backend security, auditing, a
 - 404 clarity when patient/resource not found (no 500s).
 - Field contract matches Supabase columns.
 - Audit event per call with distinct action (e.g., VIEW_PATIENT).
-
-## Logging & PII
-- [ ] Structured logging
-- INFO/WARN/ERROR only; no PII in logs; timestamps as UTC ISO8601.
