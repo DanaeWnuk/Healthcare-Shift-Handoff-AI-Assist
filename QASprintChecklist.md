@@ -54,12 +54,12 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 ## Auth Routes
 - [ ] Signup/login behavior
 - /signup returns user_id and message; no raw password; role not trusted from request body.
-- [ ] Login tokens
+- [x] Login tokens (Tested 10/29/2025)
 - /login returns access_token (and expires_in if available).
 - [ ] Invalid login path
 - Bad credentials → 400 with {"detail":"Invalid login"}.
 
-## Patient Data Routes
+## Patient Data Routes (Tested 10/28/2025-Tested 10/29/2025)
 - [x] GET /patients/{id}, /allergies, /careplans, /conditions, /devices, /encounters, /imaging_studies, /immunizations, /medications, /observations, /procedures.
 - Auth required → 401/403 when missing/invalid.
 - 404 clarity when patient/resource not found (no 500s).
