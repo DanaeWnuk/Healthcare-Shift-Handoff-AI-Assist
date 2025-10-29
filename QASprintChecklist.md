@@ -60,7 +60,7 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 - Bad credentials → 400 with {"detail":"Invalid login"}.
 
 ## Patient Data Routes
-- [ ] GET /patients/{id}, /allergies, /careplans, /conditions, /devices, /encounters, /imaging_studies, /immunizations, /medications, /observations, /procedures.
+- [x] GET /patients/{id}, /allergies, /careplans, /conditions, /devices, /encounters, /imaging_studies, /immunizations, /medications, /observations, /procedures.
 - Auth required → 401/403 when missing/invalid.
 - 404 clarity when patient/resource not found (no 500s).
 - Field contract matches Supabase columns.
