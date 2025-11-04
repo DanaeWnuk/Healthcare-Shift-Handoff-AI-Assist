@@ -18,12 +18,12 @@ export default function DocsPanel() {
     const [assessment, setAssessment] = useState("");
     const [recommendation, setRecommendation] = useState("");
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const note = { situation, background, assessment, recommendation };
         console.log("Saving SBAR note:", note);
         alert("SBAR note saved (front end only for now)");
         
-        const res = await fetch("http://localhost:8000/summarize", { //Sends a POST request to the backend
+        const res = await fetch("http://localhost:8000/summarize", { //Sends a POST request to the backend //TODO: Change local host
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
