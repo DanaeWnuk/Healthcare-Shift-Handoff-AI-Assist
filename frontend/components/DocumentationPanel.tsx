@@ -22,6 +22,16 @@ export default function DocsPanel() {
         const note = { situation, background, assessment, recommendation };
         console.log("Saving SBAR note:", note);
         alert("SBAR note saved (front end only for now)");
+        
+        const res = await fetch("http://localhost:8000/summarize", { //Sends a POST request to the backend
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(note),
+        });
+        
+        const data = await res.json(); //Waits for the backend (FastAPI) to return the summary and converts it to a JSON (WARNING: It's been a long time since I touched JavaScript, so let me know if anything seems wrong!)
     };
 
     const renderSection = (label: string, value: string, onChange: (t: string) => void) => (
