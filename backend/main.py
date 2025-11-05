@@ -3,7 +3,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from langchain import LLMChain, PromptTemplate #LLMChain is used to interact with LLMs with PromptTemplate, which is used to make templates for prompts for LLMs. 
+from langchain.prompts import PromptTemplate
+from langchain.schema.runnable import RunnableSequence
 from langchain.llms import HuggingFaceHub #Provides an interface to interact with models hosted on the Hugging Face Hub.
 from fastapi.middleware.cors import CORSMiddleware #Essential for handling Cross-Origin Resource Sharing (CORS) issues.
 import os
@@ -73,7 +74,7 @@ llm = HuggingFaceHub(
     model_kwargs = {"temperature": 0.5, "max_new_jtokens": 150}
 )
 
-chain = LLMChain(llm = llm, prompt = prompt)
+chain = RunnableSequence(first = prompt, last = llm)
 # Gets current user, currently not implemented and intended for future use
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -126,7 +127,7 @@ class UserLogin(BaseModel):
 
 @app.post("/summarize") #Accepts POST requests from the frontend holding the doctor's note to be summarized, then it sends the note to be summarized, then it returns the summarized note !!!MOVE IF IT'S NOT IN THE CORRECT SPOT!!!
 async def summarize(note: NoteRequest):
-    summary = chain.run(
+    summary = chain.invoke(
         situation = note.situation,
         background = note.background,
         assessment = note.assessment,
