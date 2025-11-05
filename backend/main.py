@@ -5,7 +5,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from langchain_core.prompts.prompt import PromptTemplate
 from langchain_core.runnables.base import RunnableSequence
-from langchain_huggingface.llms import HuggingFaceEndpoint #Provides an interface to interact with models hosted on Hugging Face.
+from langchain_huggingface import HuggingFaceEndpoint #Provides an interface to interact with models hosted on Hugging Face.
 from fastapi.middleware.cors import CORSMiddleware #Essential for handling Cross-Origin Resource Sharing (CORS) issues.
 import os
 from datetime import datetime, timezone
@@ -71,7 +71,8 @@ prompt = PromptTemplate(
 
 llm = HuggingFaceEndpoint(
     repo_id = "EleutherAI/gpt-neo-2.7B",
-    model_kwargs = {"temperature": 0.4, "max_new_tokens": 150}
+    temperature = 0.4, 
+    max_new_tokens = 150
 )
 
 chain = RunnableSequence(first = prompt, last = llm)
