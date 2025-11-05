@@ -71,7 +71,7 @@ prompt = PromptTemplate(
 
 llm = HuggingFaceEndpoint(
     repo_id = "EleutherAI/gpt-neo-2.7B",
-    model_kwargs = {"temperature": 0.4, "max_new_jtokens": 150}
+    model_kwargs = {"temperature": 0.4, "max_new_tokens": 150}
 )
 
 chain = RunnableSequence(first = prompt, last = llm)
