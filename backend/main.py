@@ -3,9 +3,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from langchain.prompts import PromptTemplate
-from langchain.schema.runnable import RunnableSequence
-from langchain.llms import HuggingFaceHub #Provides an interface to interact with models hosted on the Hugging Face Hub.
+from langchain_core.prompts.prompt import PromptTemplate
+from langchain_core.runnables.base import RunnableSequence
+from langchain_huggingface.llms import HuggingFaceEndpoint #Provides an interface to interact with models hosted on Hugging Face.
 from fastapi.middleware.cors import CORSMiddleware #Essential for handling Cross-Origin Resource Sharing (CORS) issues.
 import os
 from datetime import datetime, timezone
@@ -71,7 +71,7 @@ prompt = PromptTemplate(
 
 llm = HuggingFaceHub(
     repo_id = "EleutherAI/gpt-neo-2.7B",
-    model_kwargs = {"temperature": 0.5, "max_new_jtokens": 150}
+    model_kwargs = {"temperature": 0.4, "max_new_jtokens": 150}
 )
 
 chain = RunnableSequence(first = prompt, last = llm)
