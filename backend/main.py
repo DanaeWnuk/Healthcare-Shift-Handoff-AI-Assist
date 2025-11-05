@@ -69,7 +69,7 @@ prompt = PromptTemplate(
     input_variables = ["situation", "background", "assessment", "recommendation"]
 )
 
-llm = HuggingFaceHub(
+llm = HuggingFaceEndpoint(
     repo_id = "EleutherAI/gpt-neo-2.7B",
     model_kwargs = {"temperature": 0.4, "max_new_jtokens": 150}
 )
