@@ -169,6 +169,21 @@ def login(user: UserLogin, request: Request):
 user_email = "testing@test.com"
 
 # ---------Patient Info----------
+#Get all patients (optional pagination)
+@app.get("/patients")
+def get_all_patients(request: Request, limit: int = 50, offset: int = 0):
+    response = (
+        supabase.table("patients")
+        .select("*")
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=404, detail="No patients found")
+    log_audit(request, user_email, "VIEW_ALL_PATIENTS")
+    return {"patients": response.data}
+
+# Get a patient
 @app.get("/patients/{patient_id}")
 def get_patient(patient_id: str, request: Request):
     response = supabase.table("patients").select("*").eq("Id", patient_id).execute()

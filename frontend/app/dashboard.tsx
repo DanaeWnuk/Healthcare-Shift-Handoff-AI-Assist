@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Banner from "@/components/Banner";
@@ -6,21 +6,38 @@ import * as colors from "@/constants/colors";
 import DocsPanel from "@/components/DocumentationPanel";
 import BottomToolbar from "@/components/BottomToolbar";
 
-const patients = ["Mr. Person One", "Mr. Person Two", "Mrs. Person One", "Mrs. Person Two"];
-
 export default function Dashboard() {
     const { width } = useWindowDimensions();
     const isTablet = width > 768;
+    const [patients, setPatients] = useState<any[]>([]);
+
+    const fetchPatients = async () => {
+        try {
+            const res = await fetch("http://localhost:8000/patients");
+            const data = await res.json();
+            setPatients(data.patients);
+        } catch (err) {
+            console.error("Error fetching patients:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchPatients();
+    }, []);
 
     return (
         <View style={{ flex: 1, backgroundColor: "#dce0f0" }}>
             <Banner />
-            {isTablet ? <TabletLayout /> : <MobileLayout />}
+            {isTablet ? (
+                <TabletLayout patients={patients} />
+            ) : (
+                <MobileLayout patients={patients} />
+            )}
         </View>
     );
 }
 
-function MobileLayout() {
+function MobileLayout({ patients }: { patients: any[] }) {
     return (
         <ScrollView contentContainerStyle={{ padding: 20 }}>
             {/* Current Shift */}
@@ -61,16 +78,16 @@ function MobileLayout() {
                         marginTop: 10,
                     }}
                 >
-                    <Text style={{ color: "#fff"}}>Next Nurse RN @16:45</Text>
+                    <Text style={{ color: "#fff" }}>Next Nurse RN @16:45</Text>
                     <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
                 </View>
             </View>
 
             {/* Patients */}
             <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
-            {patients.map((p) => (
+            {patients?.map((p: any) => (
                 <Pressable
-                    key={p}
+                    key={p.ID}
                     style={{
                         backgroundColor: colors.COLORS.primary,
                         padding: 15,
@@ -78,7 +95,9 @@ function MobileLayout() {
                         marginBottom: 10,
                     }}
                 >
-                    <Text style={{ fontWeight: "600", color: "#fff" }}>{p}</Text>
+                    <Text style={{ fontWeight: "600", color: "#fff" }}>
+                        {p.PREFIX} {p.FIRST} {p.LAST}
+                    </Text>
                 </Pressable>
             ))}
 
@@ -88,7 +107,7 @@ function MobileLayout() {
     );
 }
 
-function TabletLayout() {
+function TabletLayout({ patients }: { patients: any[] }) {
     return (
         <View style={{ flex: 1, flexDirection: "row", padding: 20, gap: 20 }}>
             {/* Left Column */}
@@ -126,15 +145,15 @@ function TabletLayout() {
                         marginBottom: 15,
                     }}
                 >
-                    <Text style={{ color: "#fff"}} >Next Nurse RN @16:45</Text>
+                    <Text style={{ color: "#fff" }}>Next Nurse RN @16:45</Text>
                     <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
                 </View>
 
                 <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
                 <ScrollView style={{ maxHeight: "60%" }}>
-                    {patients.map((p) => (
+                    {patients?.map((p: any) => (
                         <Pressable
-                            key={p}
+                            key={p.ID}
                             style={{
                                 backgroundColor: colors.COLORS.primary,
                                 padding: 15,
@@ -142,7 +161,9 @@ function TabletLayout() {
                                 marginBottom: 10,
                             }}
                         >
-                            <Text style={{ fontWeight: "600", color: "#fff" }}>{p}</Text>
+                            <Text style={{ fontWeight: "600", color: "#fff" }}>
+                                {p.PREFIX} {p.FIRST} {p.LAST}
+                            </Text>
                         </Pressable>
                     ))}
                 </ScrollView>
