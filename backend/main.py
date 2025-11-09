@@ -154,10 +154,14 @@ def signup(user: UserSignUp, request: Request):
 
 @app.post("/login")
 def login(user: UserLogin, request: Request):
-    response = supabase.auth.sign_in_with_password({
-        "email": user.email,
-        "password": user.password
-    })
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid login")
+
     if not response or not response.session:
         raise HTTPException(status_code=400, detail="Invalid login")
     
