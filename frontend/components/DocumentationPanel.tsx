@@ -91,9 +91,7 @@ export default function DocsPanel() {
         const response = await fetch(`http://127.0.0.1:8000/stop-recording/${session_id}`, { //TODO: change localhost url to supabase url
             method: 'POST',
         });
-        //setSession("");
         const result = await response.json();
-        alert(result);
         } catch (error) {
         console.error('Problem ending stream', error);
         }
