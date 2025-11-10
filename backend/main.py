@@ -225,7 +225,7 @@ def get_patient_encounters(patient_id: str, request: Request):
 
 # Get patients imaging studies
 @app.get("/patients/{patient_id}/imaging_studies")
-def get_patient_imaging_sudies(patient_id: str, request: Request):
+def get_patient_imaging_studies(patient_id: str, request: Request):
     response = supabase.table("imaging_studies").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No imaging studies found")
@@ -266,6 +266,34 @@ def get_patient_procedures(patient_id: str, request: Request):
     if not response.data:
         raise HTTPException(status_code=404, detail="No procedures found")
     log_audit(request, user_email, f"VIEW_PROCEDURES_{patient_id}")
+    return response.data
+
+# Save AI Summary
+@app.post("/patients/{patient_id}/save_summary")
+def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str):
+    patient_response = supabase.table("patients").select("*").eq("id", patient_id).execute()
+    if not patient_response.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    data = {
+        "patient_id": patient_id,
+        "summary": summary_text
+    }
+    response = supabase.table("ai_summary").insert(data).execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=f"Failed to save summary: {response.error}")
+    log_audit(request, user_email, f"Save_AI_SUMMARY_{patient_id}")
+    return {"message": "AI summary saved successfully", "data": response.data}
+
+# Get AI Summary
+@app.get("/patients/{patient_id}/ai_summaries")
+def read_ai_summaries(patient_id: str, request:Request, user_email: str):
+    response = supabase.table("ai_summary").select("*").eq("patient_id", patient_id).execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")
+    if not response.data:
+        raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
+    log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
     return response.data
 
 # -------Database Connection Testing-------
