@@ -5,11 +5,14 @@ import Banner from "@/components/Banner";
 import * as colors from "@/constants/colors";
 import DocsPanel from "@/components/DocumentationPanel";
 import BottomToolbar from "@/components/BottomToolbar";
+import PatientScroll from "@/components/PatientScroll";
+import { router } from "expo-router";
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
     const isTablet = width > 768;
     const [patients, setPatients] = useState<any[]>([]);
+    const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
     // fixed toolbar sizing (kept in sync with rendered toolbar wrapper)
     const TOOLBAR_HEIGHT = 64; // actual toolbar content height
     const TOOLBAR_BOTTOM_MARGIN = 20; // distance from bottom edge
@@ -33,7 +36,13 @@ export default function Dashboard() {
     return (
         <View style={{ flex: 1, backgroundColor: "#dce0f0", position: "relative", paddingBottom: TOOLBAR_SPACE }}>
             <Banner />
-            <MainLayout patients={patients} isTablet={isTablet} toolbarSpace={TOOLBAR_SPACE} />
+            <MainLayout
+                patients={patients}
+                isTablet={isTablet}
+                toolbarSpace={TOOLBAR_SPACE}
+                selectedPatient={selectedPatient}
+                setSelectedPatient={setSelectedPatient}
+            />
 
             {/* Fixed bottom toolbar */}
             <View style={{ position: "absolute", left: 20, right: 20, bottom: TOOLBAR_BOTTOM_MARGIN, height: TOOLBAR_WRAPPER_HEIGHT, zIndex: 1000, elevation: 10 }}>
@@ -42,7 +51,16 @@ export default function Dashboard() {
         </View>
     );
 }
-function MainLayout({ patients, isTablet, toolbarSpace }: { patients: any[]; isTablet: boolean; toolbarSpace?: number }) {
+
+interface MainLayoutProps {
+    patients: any[];
+    isTablet: boolean;
+    toolbarSpace?: number;
+    selectedPatient: any | null;
+    setSelectedPatient: (p: any) => void;
+}
+
+function MainLayout({ patients, isTablet, toolbarSpace, selectedPatient, setSelectedPatient }: MainLayoutProps) {
     if (isTablet) {
         return (
             <View style={{ flex: 1, flexDirection: "row", padding: 20, gap: 20 }}>
@@ -86,29 +104,15 @@ function MainLayout({ patients, isTablet, toolbarSpace }: { patients: any[]; isT
                     </View>
 
                     <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
-                    <ScrollView style={{ maxHeight: "60%" }} contentContainerStyle={{ paddingBottom: toolbarSpace ?? 140 }}>
-                        {patients?.map((p: any) => (
-                            <Pressable
-                                key={p.ID}
-                                style={{
-                                    backgroundColor: colors.COLORS.primary,
-                                    padding: 15,
-                                    borderRadius: 10,
-                                    marginBottom: 10,
-                                }}
-                            >
-                                <Text style={{ fontWeight: "600", color: "#fff" }}>
-                                    {p.PREFIX} {p.FIRST} {p.LAST}
-                                </Text>
-                            </Pressable>
-                        ))}
-                    </ScrollView>
-
+                    <PatientScroll
+                        patients={patients}
+                        onSelectPatient={setSelectedPatient}
+                    />
                     {/* Bottom Nav (now fixed) */}
                 </View>
 
                 {/* Right Column */}
-                <DocsPanel />
+                <DocsPanel selectedPatient={selectedPatient} />
             </View>
         );
     }
@@ -162,23 +166,10 @@ function MainLayout({ patients, isTablet, toolbarSpace }: { patients: any[]; isT
             {/* Patients — this is the only scrollable area */}
             <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: toolbarSpace ?? 120 }}>
-                    {patients?.map((p: any) => (
-                        <Pressable
-                            key={p.ID}
-                            style={{
-                                backgroundColor: colors.COLORS.primary,
-                                padding: 15,
-                                borderRadius: 10,
-                                marginBottom: 10,
-                            }}
-                        >
-                            <Text style={{ fontWeight: "600", color: "#fff" }}>
-                                {p.PREFIX} {p.FIRST} {p.LAST}
-                            </Text>
-                        </Pressable>
-                    ))}
-                </ScrollView>
+                <PatientScroll
+                    patients={patients}
+                    onSelectPatient={setSelectedPatient}
+                />
             </View>
 
             {/* Docs panel hidden on mobile (appears on tablet only) */}
