@@ -128,13 +128,31 @@ class UserLogin(BaseModel):
 
 @app.post("/summarize") #Accepts POST requests from the frontend holding the doctor's note to be summarized, then it sends the note to be summarized, then it returns the summarized note !!!MOVE IF IT'S NOT IN THE CORRECT SPOT!!!
 async def summarize(note: NoteRequest):
-    summary = chain.invoke(
-        situation = note.situation,
-        background = note.background,
-        assessment = note.assessment,
-        recommendation = note.recommendation,
-    )
-    return {"summary": summary.strip()}
+    # RunnableSequence.invoke expects a single `input` argument (positional).
+    # Pass a mapping with the prompt variables so the PromptTemplate can format it.
+    input_payload = {
+        "situation": note.situation,
+        "background": note.background,
+        "assessment": note.assessment,
+        "recommendation": note.recommendation,
+    }
+
+    # Invoke the chain with the input payload. The result may not be a plain
+    # string depending on the Runnable implementation, so coerce to str.
+    try:
+        result = chain.invoke(input_payload)
+        summary_text = str(result).strip()
+        return {"summary": summary_text}
+    except Exception as e:
+        # Log full exception for debugging (kept server-side).
+        logging.exception("LLM invocation failed")
+        # Provide a safe fallback so the API doesn't return 500 to the client.
+        fallback = (
+            f"[LLM unavailable] Situation: {note.situation} "
+            f"Background: {note.background} Assessment: {note.assessment} "
+            f"Recommendation: {note.recommendation}"
+        )
+        return {"summary": fallback, "llm_error": str(e)}
 
 @app.post("/signup")
 def signup(user: UserSignUp, request: Request):
