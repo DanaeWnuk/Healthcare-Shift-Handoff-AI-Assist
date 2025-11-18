@@ -1,28 +1,125 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Banner from "@/components/Banner";
 import * as colors from "@/constants/colors";
 import DocsPanel from "@/components/DocumentationPanel";
 import BottomToolbar from "@/components/BottomToolbar";
-
-const patients = ["Mr. Person One", "Mr. Person Two", "Mrs. Person One", "Mrs. Person Two"];
+import PatientScroll from "@/components/PatientScroll";
+import { router } from "expo-router";
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
     const isTablet = width > 768;
+    const [patients, setPatients] = useState<any[]>([]);
+    const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+    // fixed toolbar sizing (kept in sync with rendered toolbar wrapper)
+    const TOOLBAR_HEIGHT = 64; // actual toolbar content height
+    const TOOLBAR_BOTTOM_MARGIN = 20; // distance from bottom edge
+    const TOOLBAR_WRAPPER_HEIGHT = TOOLBAR_HEIGHT; // wrapper height
+    const TOOLBAR_SPACE = TOOLBAR_WRAPPER_HEIGHT + TOOLBAR_BOTTOM_MARGIN;
+
+    const fetchPatients = async () => {
+        try {
+            const res = await fetch("http://localhost:8000/patients");
+            const data = await res.json();
+            setPatients(data.patients);
+        } catch (err) {
+            console.error("Error fetching patients:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchPatients();
+    }, []);
 
     return (
-        <View style={{ flex: 1, backgroundColor: "#dce0f0" }}>
+        <View style={{ flex: 1, backgroundColor: "#dce0f0", position: "relative", paddingBottom: TOOLBAR_SPACE }}>
             <Banner />
-            {isTablet ? <TabletLayout /> : <MobileLayout />}
+            <MainLayout
+                patients={patients}
+                isTablet={isTablet}
+                toolbarSpace={TOOLBAR_SPACE}
+                selectedPatient={selectedPatient}
+                setSelectedPatient={setSelectedPatient}
+            />
+
+            {/* Fixed bottom toolbar */}
+            <View style={{ position: "absolute", left: 20, right: 20, bottom: TOOLBAR_BOTTOM_MARGIN, height: TOOLBAR_WRAPPER_HEIGHT, zIndex: 1000, elevation: 10 }}>
+                <BottomToolbar />
+            </View>
         </View>
     );
 }
 
-function MobileLayout() {
+interface MainLayoutProps {
+    patients: any[];
+    isTablet: boolean;
+    toolbarSpace?: number;
+    selectedPatient: any | null;
+    setSelectedPatient: (p: any) => void;
+}
+
+function MainLayout({ patients, isTablet, toolbarSpace, selectedPatient, setSelectedPatient }: MainLayoutProps) {
+    if (isTablet) {
+        return (
+            <View style={{ flex: 1, flexDirection: "row", padding: 20, gap: 20 }}>
+                {/* Left Column */}
+                <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 18, fontWeight: "bold" }}>Current Shift</Text>
+                    <View
+                        style={{
+                            backgroundColor: colors.COLORS.background,
+                            borderRadius: 10,
+                            padding: 15,
+                            marginTop: 10,
+                            marginBottom: 15,
+                        }}
+                    >
+                        <Text>First Last RN</Text>
+                        <Text>00:07:45</Text>
+                        <View
+                            style={{
+                                height: 10,
+                                backgroundColor: colors.COLORS.green,
+                                borderRadius: 5,
+                                marginTop: 10,
+                                width: "75%",
+                            }}
+                        />
+                    </View>
+
+                    <Text style={{ fontSize: 18, fontWeight: "bold" }}>Upcoming Handoff</Text>
+                    <View
+                        style={{
+                            backgroundColor: colors.COLORS.primary,
+                            borderRadius: 10,
+                            padding: 15,
+                            marginTop: 10,
+                            marginBottom: 15,
+                        }}
+                    >
+                        <Text style={{ color: "#fff" }}>Next Nurse RN @16:45</Text>
+                        <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
+                    </View>
+
+                    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
+                    <PatientScroll
+                        patients={patients}
+                        onSelectPatient={setSelectedPatient}
+                    />
+                    {/* Bottom Nav (now fixed) */}
+                </View>
+
+                {/* Right Column */}
+                <DocsPanel selectedPatient={selectedPatient} />
+            </View>
+        );
+    }
+
+    // Mobile / narrow layout (single column) — only patients list scrolls
     return (
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <View style={{ flex: 1, padding: 20 }}>
             {/* Current Shift */}
             <View style={{ marginBottom: 20 }}>
                 <Text style={{ fontSize: 18, fontWeight: "bold" }}>Current Shift</Text>
@@ -61,98 +158,21 @@ function MobileLayout() {
                         marginTop: 10,
                     }}
                 >
-                    <Text style={{ color: "#fff"}}>Next Nurse RN @16:45</Text>
+                    <Text style={{ color: "#fff" }}>Next Nurse RN @16:45</Text>
                     <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
                 </View>
             </View>
 
-            {/* Patients */}
-            <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
-            {patients.map((p) => (
-                <Pressable
-                    key={p}
-                    style={{
-                        backgroundColor: colors.COLORS.primary,
-                        padding: 15,
-                        borderRadius: 10,
-                        marginBottom: 10,
-                    }}
-                >
-                    <Text style={{ fontWeight: "600", color: "#fff" }}>{p}</Text>
-                </Pressable>
-            ))}
-
-            {/* Bottom Nav */}
-            <BottomToolbar />
-        </ScrollView>
-    );
-}
-
-function TabletLayout() {
-    return (
-        <View style={{ flex: 1, flexDirection: "row", padding: 20, gap: 20 }}>
-            {/* Left Column */}
+            {/* Patients — this is the only scrollable area */}
             <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: "bold" }}>Current Shift</Text>
-                <View
-                    style={{
-                        backgroundColor: colors.COLORS.background,
-                        borderRadius: 10,
-                        padding: 15,
-                        marginTop: 10,
-                        marginBottom: 15,
-                    }}
-                >
-                    <Text>First Last RN</Text>
-                    <Text>00:07:45</Text>
-                    <View
-                        style={{
-                            height: 10,
-                            backgroundColor: colors.COLORS.green,
-                            borderRadius: 5,
-                            marginTop: 10,
-                            width: "75%",
-                        }}
-                    />
-                </View>
-
-                <Text style={{ fontSize: 18, fontWeight: "bold" }}>Upcoming Handoff</Text>
-                <View
-                    style={{
-                        backgroundColor: colors.COLORS.primary,
-                        borderRadius: 10,
-                        padding: 15,
-                        marginTop: 10,
-                        marginBottom: 15,
-                    }}
-                >
-                    <Text style={{ color: "#fff"}} >Next Nurse RN @16:45</Text>
-                    <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
-                </View>
-
                 <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
-                <ScrollView style={{ maxHeight: "60%" }}>
-                    {patients.map((p) => (
-                        <Pressable
-                            key={p}
-                            style={{
-                                backgroundColor: colors.COLORS.primary,
-                                padding: 15,
-                                borderRadius: 10,
-                                marginBottom: 10,
-                            }}
-                        >
-                            <Text style={{ fontWeight: "600", color: "#fff" }}>{p}</Text>
-                        </Pressable>
-                    ))}
-                </ScrollView>
-
-                {/* Bottom Nav */}
-                <BottomToolbar />
+                <PatientScroll
+                    patients={patients}
+                    onSelectPatient={setSelectedPatient}
+                />
             </View>
 
-            {/* Right Column */}
-            <DocsPanel />
+            {/* Docs panel hidden on mobile (appears on tablet only) */}
         </View>
     );
 }
