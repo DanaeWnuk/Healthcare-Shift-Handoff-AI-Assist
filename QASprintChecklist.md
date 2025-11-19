@@ -69,3 +69,6 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 # Sprint 4 QA Checklist
 
 This checklist covers QA for Sprint 4 and revisiting test cases from previous sprints.
+
+- [ ] Ensure previous Sprints checkboxes have been tested and are working.
+- [ ] Test AI summary capabilities
