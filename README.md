@@ -39,3 +39,7 @@ npx expo start
 - Google Play Store
 - Apple App Store
 5. Open Expo Go on your mobile device. Scan the QR code displayed in your terminal or browser after running npm expo start. The app will load on your device.
+
+### Note:
+- Ensure your mobile device and development machine are on the same Wi-Fi network.
+- If you have issues with the QR code, you can use the LAN URL shown in the Expo CLI output.
