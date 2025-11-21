@@ -25,13 +25,10 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
   - Try to navigate manually to a protected page while logged out
   - Expected: Redirect to login, no access granted
 
-## UI Wireframes (Review and Validation) & Test Cases (QA Deliverables)
+## UI Wireframes (Review and Validation)
 - [x] Login screen wireframe matches agreed design (Tested 10/10/2025)
-- [ ] SBAR handoff template wireframe includes **Situation, Background, Assessment, and Recommendation**
+- [x] SBAR handoff template wireframe includes **Situation, Background, Assessment, and Recommendation**
 - [x] Initial QA test cases documented in repo (Tested 10/10/2025)
-- [ ] Checklist items trace back to Sprint 1 backlog goals
-  - Confirm initial QA test cases file is committed. Review coverage against Sprint 1 backlog items
-  - Expected: Test cases reviewed by Scrum Master and Product Owner
      
 # Sprint 2-3 QA Checklist
 
@@ -69,3 +66,6 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 # Sprint 4 QA Checklist
 
 This checklist covers QA for Sprint 4 and revisiting test cases from previous sprints.
+
+- [ ] Ensure previous Sprints checkboxes have been tested and are working.
+- [ ] Test AI summary capabilities
