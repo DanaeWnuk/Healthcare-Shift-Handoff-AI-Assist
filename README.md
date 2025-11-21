@@ -25,7 +25,7 @@ http://localhost:8000
 ```bash
 cd frontend; npm i;
 ```
-2. only ever run this in /frontend
+2. Start the Expo server (only ever run this in /frontend)
 ```bash
 npx expo start
 ```
