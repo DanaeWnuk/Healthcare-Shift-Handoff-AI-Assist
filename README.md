@@ -2,17 +2,40 @@
 
 Built with React Native and Expo mobile building suite.
 
-To run, clone the repo
+## Backend
+1. Navigate to the backend folder:
+```bash
+cd backend
+```
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+3. Start the FastAPI server:
+```bash
+uvicorn main:app --reload
+```
+4. The backend will run at:
+```bash
+http://localhost:8000
+```
+
+## Frontend
+1. To run, clone the repo
 ```bash
 cd frontend; npm i;
 ```
-only ever run this in /frontend
+2. only ever run this in /frontend
 ```bash
 npx expo start
 ```
-It will build, then
+3. It will build, then display a menu with a QR code in the terminal
 ```bash
 › Press a │ open Android
 › Press i │ open iOS simulator
 › Press w │ open web
 ```
+4. Download Expo Go from:
+- Google Play Store
+- Apple App Store
+5. Open Expo Go on your mobile device. Scan the QR code displayed in your terminal or browser after running npm expo start. The app will load on your device.
