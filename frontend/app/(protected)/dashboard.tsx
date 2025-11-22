@@ -7,6 +7,7 @@ import DocsPanel from "@/components/DocumentationPanel";
 import BottomToolbar from "@/components/BottomToolbar";
 import PatientScroll from "@/components/PatientScroll";
 import { router } from "expo-router";
+import { apiFetch } from "@/lib/api";
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
@@ -21,7 +22,7 @@ export default function Dashboard() {
 
     const fetchPatients = async () => {
         try {
-            const res = await fetch("http://localhost:8000/patients");
+            const res = await apiFetch("http://localhost:8000/patients");
             const data = await res.json();
             setPatients(data.patients);
         } catch (err) {

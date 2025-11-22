@@ -33,7 +33,6 @@ security = HTTPBearer()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -158,16 +157,33 @@ async def summarize(note: NoteRequest):
 
 @app.post("/signup")
 def signup(user: UserSignUp, request: Request):
-    response = supabase.auth.sign_up({
-        "email": user.email,
-        "password": user.password,
-        "options":{
-            "data": {"role": user.role}
-        }
-    })
+    try:
+        response = supabase.auth.sign_up({
+            "email": user.email,
+            "password": user.password,
+            "options":{
+                "data": {"role": user.role}
+            }
+        })
+    except Exception as e:
+        # Supabase client raises on 4xx/5xx; return a clean HTTP error to the client
+        logging.warning(f"Signup failed for {user.email}: {e}")
+        # Try to provide a helpful message; avoid leaking sensitive internals
+        msg = getattr(e, 'response', None)
+        if msg:
+            try:
+                # httpx.HTTPStatusError may have a response with text/json
+                body = e.response.text
+                raise HTTPException(status_code=400, detail=f"Signup failed: {body}")
+            except Exception:
+                raise HTTPException(status_code=400, detail="Signup failed")
+        raise HTTPException(status_code=400, detail="Signup failed")
+
     if response.user is None:
-        raise HTTPException(status_code=400, detail=response.message)
-    
+        # Supabase sometimes returns a message on failure
+        detail = getattr(response, 'message', 'User creation failed')
+        raise HTTPException(status_code=400, detail=detail)
+
     log_audit(request, user.email, "SIGNUP")
 
     return {"message": "User created", "user_id": response.user.id, "role": user.role}
@@ -207,10 +223,12 @@ def get_all_patients(request: Request, limit: int = 50, offset: int = 0):
         .range(offset, offset + limit - 1)
         .execute()
     )
-    if not response.data:
-        raise HTTPException(status_code=404, detail="No patients found")
+    # If the table is empty return an empty list instead of 404 so the UI
+    # can render an empty state. Audit as usual (log_audit already handles
+    # its own errors).
+    patients = response.data or []
     log_audit(request, user_email, "VIEW_ALL_PATIENTS")
-    return {"patients": response.data}
+    return {"patients": patients}
 
 # Get a patient
 @app.get("/patients/{patient_id}")

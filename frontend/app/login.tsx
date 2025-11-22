@@ -12,6 +12,10 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const handleSignUp = () => {
+        router.navigate('/signup');
+    }
+
     const handleLogin = async () => {
         setError(null);
         if (!email.trim() || !password) {
@@ -83,7 +87,9 @@ export default function LoginScreen() {
                 <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
                 </Pressable>
-                {/*<Button title="Submit" onPress={handleSubmit} color={COLORS.dark} />*/}
+                <Pressable style={styles.button} onPress={handleSignUp} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+                </Pressable>
             </View>
         </View>
     )
@@ -107,7 +113,8 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.dark,
         padding: 14,
         borderRadius: 8,
-        alignItems: "center"
+        alignItems: "center",
+        marginBottom: 7,
     },
     error: {
         color: "crimson",

@@ -32,7 +32,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`http://localhost:8000/patients/${patientId}`);
+                const res = await apiFetch(`http://localhost:8000/patients/${patientId}`);
                 if (!res.ok) throw new Error("Failed to fetch documentation");
                 const data = await res.json();
                 // /patients/{patient_id} returns an array
