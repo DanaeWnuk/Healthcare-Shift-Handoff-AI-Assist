@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as colors from "../constants/colors";
+import { apiFetch } from "@/lib/api";
 
 interface DocumentationPanelProps {
     selectedPatient?: any;

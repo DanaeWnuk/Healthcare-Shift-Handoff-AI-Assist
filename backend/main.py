@@ -29,12 +29,14 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI()
 security = HTTPBearer()
-app.add_middleware( #CORS configuration
+
+app.add_middleware(
     CORSMiddleware,
-    allow_origins = ["*"], 
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # ---- Model ---- FAIR WARNING I am not 100% sure that this is where this should go within the code, but I'm putting it here for now. If you would prefer this somewhere else, please move it. #
@@ -172,13 +174,22 @@ def signup(user: UserSignUp, request: Request):
 
 @app.post("/login")
 def login(user: UserLogin, request: Request):
-    response = supabase.auth.sign_in_with_password({
-        "email": user.email,
-        "password": user.password
-    })
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
+    except Exception as e:
+        # supabase client raises on 4xx/5xx;
+        # return a 401 to the client instead of letting an unhandled exception bubble
+        logging.warning(f"Login failed for {user.email}: {e}")
+        raise HTTPException(status_code=401, detail="Invalid login credentials")
+
     if not response or not response.session:
-        raise HTTPException(status_code=400, detail="Invalid login")
-    
+        # Defensive: if supabase returns an unexpected shape
+        logging.warning(f"Login attempt returned no session for {user.email}: {response}")
+        raise HTTPException(status_code=401, detail="Invalid login credentials")
+
     log_audit(request, user.email, "LOGIN_SUCCESS")
 
     return {"message": "Logged in", "access_token": response.session.access_token}
@@ -203,7 +214,7 @@ def get_all_patients(request: Request, limit: int = 50, offset: int = 0):
 
 # Get a patient
 @app.get("/patients/{patient_id}")
-def get_patient(patient_id: str, request: Request):
+def get_patient(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -212,7 +223,7 @@ def get_patient(patient_id: str, request: Request):
 
 # Get patients allergies
 @app.get("/patients/{patient_id}/allergies")
-def get_patient_allergies(patient_id: str, request: Request):
+def get_patient_allergies(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("allergies").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No allergies found")
@@ -221,17 +232,16 @@ def get_patient_allergies(patient_id: str, request: Request):
 
 # Get patients careplans
 @app.get("/patients/{patient_id}/careplans")
-def get_patient_careplans(patient_id: str, request: Request):
+def get_patient_careplans(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("careplans").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No careplan found")
-    user_email = "testing@test.com"
     log_audit(request, user_email, f"VIEW_CAREPLANS_{patient_id}")
     return response.data
 
 # Get patients conditions
 @app.get("/patients/{patient_id}/conditions")
-def get_patient_conditions(patient_id: str, request: Request):
+def get_patient_conditions(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("conditions").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No conditions found")
@@ -240,7 +250,7 @@ def get_patient_conditions(patient_id: str, request: Request):
 
 # Get patients devices
 @app.get("/patients/{patient_id}/devices")
-def get_patient_devices(patient_id: str, request: Request):
+def get_patient_devices(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("devices").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No devices found")
@@ -249,7 +259,7 @@ def get_patient_devices(patient_id: str, request: Request):
 
 # Get patients encounters
 @app.get("/patients/{patient_id}/encounters")
-def get_patient_encounters(patient_id: str, request: Request):
+def get_patient_encounters(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("encounters").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No encounters found")
@@ -258,7 +268,7 @@ def get_patient_encounters(patient_id: str, request: Request):
 
 # Get patients imaging studies
 @app.get("/patients/{patient_id}/imaging_studies")
-def get_patient_imaging_sudies(patient_id: str, request: Request):
+def get_patient_imaging_studies(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("imaging_studies").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No imaging studies found")
@@ -267,7 +277,7 @@ def get_patient_imaging_sudies(patient_id: str, request: Request):
 
 # Get patients immunizations
 @app.get("/patients/{patient_id}/immunizations")
-def get_patient_immunizations(patient_id: str, request: Request):
+def get_patient_immunizations(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("immunizations").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No immunizations found")
@@ -276,7 +286,7 @@ def get_patient_immunizations(patient_id: str, request: Request):
 
 # Get patients medications
 @app.get("/patients/{patient_id}/medications")
-def get_patient_medications(patient_id: str, request: Request):
+def get_patient_medications(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("medications").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No medications found")
@@ -285,7 +295,7 @@ def get_patient_medications(patient_id: str, request: Request):
 
 # Get patients observations
 @app.get("/patients/{patient_id}/observations")
-def get_patient_observations(patient_id: str, request: Request):
+def get_patient_observations(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("observations").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No observations found")
@@ -294,7 +304,7 @@ def get_patient_observations(patient_id: str, request: Request):
 
 # Get patients procedures
 @app.get("/patients/{patient_id}/procedures")
-def get_patient_procedures(patient_id: str, request: Request):
+def get_patient_procedures(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("procedures").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No procedures found")
