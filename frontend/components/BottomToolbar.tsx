@@ -20,7 +20,7 @@ export default function BottomToolbar({ style }: { style?: ViewStyle }) {
     }
 
     const onPatient = () => {
-        router.navigate('/dashboard');
+        router.navigate('/patient');
     }
 
     return (
