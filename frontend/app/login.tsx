@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import BigLogo from '@/assets/biglogo'
-import * as SecureStore from "expo-secure-store";
+import { setItemAsync } from '@/lib/secureStore';
 import { COLORS } from '@/constants/colors'
 import { apiFetch } from '@/lib/api';
 
@@ -44,7 +44,7 @@ export default function LoginScreen() {
             }
 
             // save token securely
-            await SecureStore.setItemAsync("access_token", token);
+            await setItemAsync("access_token", token);
 
             // navigate to dashboard (replace or push as you prefer)
             router.replace("/dashboard");
@@ -124,13 +124,4 @@ const styles = StyleSheet.create({
     },
 })
 
-// Helper: call from other modules to attach auth header for protected requests
-export async function getAuthHeaders() {
-    try {
-        const token = await SecureStore.getItemAsync("access_token");
-        if (token) return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-    } catch (e) {
-        console.warn('getAuthHeaders error', e);
-    }
-    return { 'Content-Type': 'application/json' };
-}
+// auth helpers live in `frontend/lib/auth.ts`

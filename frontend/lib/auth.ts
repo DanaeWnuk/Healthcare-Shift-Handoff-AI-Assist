@@ -1,14 +1,14 @@
-import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
+import { getItemAsync, deleteItemAsync } from "./secureStore";
 
 export const TOKEN_KEY = "access_token";
 
 export async function getToken() {
-    return await SecureStore.getItemAsync(TOKEN_KEY);
+    return await getItemAsync(TOKEN_KEY);
 }
 
 export async function clearToken() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await deleteItemAsync(TOKEN_KEY);
 }
 
 export async function getAuthHeaders() {
