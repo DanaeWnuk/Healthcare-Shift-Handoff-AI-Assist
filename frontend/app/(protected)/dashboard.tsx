@@ -61,119 +61,24 @@ interface MainLayoutProps {
     setSelectedPatient: (p: any) => void;
 }
 
-function MainLayout({ patients, isTablet, toolbarSpace, selectedPatient, setSelectedPatient }: MainLayoutProps) {
-    if (isTablet) {
-        return (
-            <View style={{ flex: 1, flexDirection: "row", padding: 20, gap: 20 }}>
-                {/* Left Column */}
-                <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 18, fontWeight: "bold" }}>Current Shift</Text>
-                    <View
-                        style={{
-                            backgroundColor: colors.COLORS.background,
-                            borderRadius: 10,
-                            padding: 15,
-                            marginTop: 10,
-                            marginBottom: 15,
-                        }}
-                    >
-                        <Text>First Last RN</Text>
-                        <Text>00:07:45</Text>
-                        <View
-                            style={{
-                                height: 10,
-                                backgroundColor: colors.COLORS.green,
-                                borderRadius: 5,
-                                marginTop: 10,
-                                width: "75%",
-                            }}
-                        />
-                    </View>
-
-                    <Text style={{ fontSize: 18, fontWeight: "bold" }}>Upcoming Handoff</Text>
-                    <View
-                        style={{
-                            backgroundColor: colors.COLORS.primary,
-                            borderRadius: 10,
-                            padding: 15,
-                            marginTop: 10,
-                            marginBottom: 15,
-                        }}
-                    >
-                        <Text style={{ color: "#fff" }}>Next Nurse RN @16:45</Text>
-                        <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
-                    </View>
-
-                    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
+function MainLayout({ patients, selectedPatient, setSelectedPatient }: MainLayoutProps) {
+    return (
+        <View style={{ flex: 1, flexDirection: "row", padding: 20, gap: 20 }}>
+            {/* Left Column */}
+            <View style={{ flex: 1, minHeight: 0 }}>
+                <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
+                <View style={{ flex: 1, minHeight: 0 }}>
                     <PatientScroll
                         patients={patients}
                         onSelectPatient={setSelectedPatient}
                     />
-                    {/* Bottom Nav (now fixed) */}
                 </View>
 
-                {/* Right Column */}
-                <DocsPanel selectedPatient={selectedPatient} />
-            </View>
-        );
-    }
-
-    // Mobile / narrow layout (single column) — only patients list scrolls
-    return (
-        <View style={{ flex: 1, padding: 20 }}>
-            {/* Current Shift */}
-            <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: "bold" }}>Current Shift</Text>
-                <View
-                    style={{
-                        flexDirection: "column",
-                        justifyContent: "flex-start",
-                        backgroundColor: colors.COLORS.background,
-                        borderRadius: 10,
-                        padding: 10,
-                        marginTop: 10,
-                    }}
-                >
-                    <Text>First Last RN</Text>
-                    <Text>00:07:45</Text>
-                    <View
-                        style={{
-                            height: 10,
-                            backgroundColor: colors.COLORS.green,
-                            borderRadius: 5,
-                            marginTop: 5,
-                            width: "75%",
-                        }}
-                    />
-                </View>
+                {/* Bottom Nav (now fixed) */}
             </View>
 
-            {/* Upcoming Handoff */}
-            <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: "bold" }}>Upcoming Handoff</Text>
-                <View
-                    style={{
-                        backgroundColor: colors.COLORS.primary,
-                        borderRadius: 10,
-                        padding: 15,
-                        marginTop: 10,
-                    }}
-                >
-                    <Text style={{ color: "#fff" }}>Next Nurse RN @16:45</Text>
-                    <Text style={{ color: "#fff" }}>Handoff Reminder: 16:40</Text>
-                </View>
-            </View>
-
-            {/* Patients — this is the only scrollable area */}
-            <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
-                <PatientScroll
-                    patients={patients}
-                    onSelectPatient={setSelectedPatient}
-                />
-            </View>
-
-            {/* Docs panel hidden on mobile (appears on tablet only) */}
+            {/* Right Column */}
+            <DocsPanel selectedPatient={selectedPatient} />
         </View>
     );
 }

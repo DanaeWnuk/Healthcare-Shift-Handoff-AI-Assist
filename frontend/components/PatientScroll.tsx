@@ -55,7 +55,6 @@ const styles = StyleSheet.create({
     content: {
         paddingBottom: 20,
         paddingTop: 8,
-        flexGrow: 1,
     },
     card: {
         backgroundColor: COLORS.primary,
