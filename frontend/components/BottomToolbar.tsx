@@ -6,22 +6,9 @@ import * as colors from "@/constants/colors";
 import { router } from "expo-router";
 
 export default function BottomToolbar({ style }: { style?: ViewStyle }) {
-
-    const onHome = () => {
-        router.navigate('/dashboard');
-    }
-
-    const onProfile = () => {
-        router.navigate('/dashboard');
-    }
-
-    const onCalendar = () => {
-        router.navigate('/dashboard');
-    }
-
-    const onPatient = () => {
-        router.navigate('/patient');
-    }
+    const onHome = () => router.navigate("/dashboard");
+    const onProfile = () => router.navigate("/dashboard");
+    const onPatient = () => router.navigate("/patient");
 
     return (
         <View
@@ -36,26 +23,15 @@ export default function BottomToolbar({ style }: { style?: ViewStyle }) {
                 style,
             ]}
         >
-            <Pressable
-                onPress={onPatient}
-            >
+            <Pressable onPress={onPatient}>
                 <Ionicons name="people" size={24} color="white" />
             </Pressable>
-            <Pressable
-                onPress={onCalendar}
-            >
-                <Ionicons name="calendar-outline" size={24} color="white" />
-            </Pressable>
-            <Pressable
-                onPress={onHome}
-            >
+            <Pressable onPress={onHome}>
                 <Ionicons name="home-outline" size={24} color="white" />
             </Pressable>
-            <Pressable
-                onPress={onProfile}
-            >
+            <Pressable onPress={onProfile}>
                 <Ionicons name="person-outline" size={24} color="white" />
             </Pressable>
         </View>
-    )
+    );
 }

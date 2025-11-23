@@ -10,7 +10,6 @@ interface IPatientScrollProps {
 
 export default function PatientScroll({ patients = [], onSelectPatient }: IPatientScrollProps) {
     const renderName = (p: any) => {
-        // Support different schemas returned by backend: PREFIX/FIRST/LAST or prefix/first/last
         const prefix = p?.PREFIX ?? p?.prefix ?? p?.title ?? "";
         const first = p?.FIRST ?? p?.first ?? p?.given ?? p?.FIRST_NAME ?? "";
         const last = p?.LAST ?? p?.last ?? p?.family ?? p?.LAST_NAME ?? "";
@@ -22,35 +21,35 @@ export default function PatientScroll({ patients = [], onSelectPatient }: IPatie
         return String(id);
     };
 
+    const renderItem = ({ item: p }: { item: any }) => (
+        <Pressable style={styles.card} onPress={() => onSelectPatient?.(p)}>
+            <Text style={styles.name}>{renderName(p)}</Text>
+        </Pressable>
+    );
+
     return (
         <View style={styles.container}>
             <FlatList
                 data={patients}
                 keyExtractor={keyExtractor}
+                renderItem={renderItem}
                 style={styles.list}
                 contentContainerStyle={styles.content}
-                renderItem={({ item: p }) => (
-                    <Pressable style={styles.card} onPress={() => onSelectPatient?.(p)}>
-                        <Text style={styles.name}>{renderName(p)}</Text>
-                    </Pressable>
-                )}
-                ListEmptyComponent={
-                    <View style={styles.emptyWrap}>
-                        <Text style={styles.emptyText}>No patients found.</Text>
-                    </View>
-                }
+                showsVerticalScrollIndicator
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    // This container must be able to shrink — minHeight: 0 ensures parents can bound it.
     container: {
         flex: 1,
         minHeight: 0,
     },
     list: {
         flex: 1,
+        minHeight: 0,
     },
     content: {
         paddingBottom: 20,
@@ -75,4 +74,3 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
 });
-

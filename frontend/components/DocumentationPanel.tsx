@@ -1,3 +1,4 @@
+// components/DocumentationPanel.tsx
 import React, { useState, useEffect } from "react";
 import {
     View,
@@ -26,7 +27,6 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // If selectedPatient changes, load their documentation
     useEffect(() => {
         const fetchDocumentation = async (patientId: string) => {
             setLoading(true);
@@ -35,7 +35,6 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                 const res = await apiFetch(`http://localhost:8000/patients/${patientId}`);
                 if (!res.ok) throw new Error("Failed to fetch documentation");
                 const data = await res.json();
-                // /patients/{patient_id} returns an array
                 const doc = Array.isArray(data) ? data[0] : (data && data[0]) || {};
                 setSituation(doc.situation || doc.SITUATION || "");
                 setBackground(doc.background || doc.BACKGROUND || "");
@@ -52,15 +51,21 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
             }
         };
 
-        // support multiple ID field names
-        const patientId = selectedPatient && (selectedPatient.ID ?? selectedPatient.Id ?? selectedPatient.id ?? selectedPatient.patient ?? selectedPatient.PATIENT ?? selectedPatient.Patient ?? selectedPatient.PATIENT_ID);
+        const patientId =
+            selectedPatient &&
+            (selectedPatient.ID ??
+                selectedPatient.Id ??
+                selectedPatient.id ??
+                selectedPatient.patient ??
+                selectedPatient.PATIENT ??
+                selectedPatient.Patient ??
+                selectedPatient.PATIENT_ID);
 
         if (selectedPatient) {
             if (!patientId) {
                 setError("Selected patient has no detectable ID field");
                 return;
             }
-            // load documentation
             fetchDocumentation(String(patientId));
         } else {
             setSituation("");
@@ -73,20 +78,15 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
 
     const handleSave = async () => {
         const note = { situation, background, assessment, recommendation };
-        console.log("Saving SBAR note:", note);
         try {
-            const res = await fetch("http://localhost:8000/summarize", { //Sends a POST request to the backend
+            const res = await fetch("http://localhost:8000/summarize", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(note),
             });
 
             const data = await res.json();
-            // show returned summary if available
             if (data && data.summary) {
-                // small notification for now
                 alert(`Summary:\n${data.summary}`);
             } else {
                 alert("SBAR note saved (no summary returned)");
@@ -115,17 +115,19 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.container}
+            style={[styles.container, { flexShrink: 1 }]}
         >
-            {/* Header */}
             <View style={styles.headerRow}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={styles.title}>Documentation / SBAR Notes</Text>
+                    <Text style={styles.title}>Documentation</Text>
                     {selectedPatient ? (
-                        <Text style={styles.patientName} numberOfLines={1} ellipsizeMode="tail">{`${selectedPatient.FIRST || selectedPatient.first || selectedPatient.name || selectedPatient.LAST || selectedPatient.last || ''}`}</Text>
+                        <Text style={styles.patientName} numberOfLines={1} ellipsizeMode="tail">
+                            {`${selectedPatient.FIRST || selectedPatient.first || selectedPatient.name || selectedPatient.LAST || selectedPatient.last || ""}`}
+                        </Text>
                     ) : null}
                     {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
                 </View>
+
                 <View style={styles.iconRow}>
                     <TouchableOpacity style={styles.iconButton} onPress={handleSave}>
                         <Ionicons name="save-outline" size={22} color="#000" />
@@ -133,13 +135,14 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                 </View>
             </View>
 
-            {/* Content */}
+            {/* Make ScrollView fill available space (flex:1) and be bounded */}
             <ScrollView style={styles.innerBox} contentContainerStyle={{ paddingBottom: 30 }}>
                 {error ? (
                     <View style={{ padding: 8 }}>
                         <Text style={styles.errorText}>{error}</Text>
                     </View>
                 ) : null}
+
                 {renderSection("Situation", situation, setSituation)}
                 {renderSection("Background", background, setBackground)}
                 {renderSection("Assessment", assessment, setAssessment)}
@@ -151,7 +154,8 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
 
 const styles = StyleSheet.create({
     container: {
-        flex: 2,
+        flex: 1,
+        minHeight: 0,
         backgroundColor: colors.COLORS.primary,
         borderRadius: 15,
         padding: 15,
@@ -179,7 +183,8 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     innerBox: {
-        flex: 1,
+        flex: 1, // ensures the ScrollView is bounded and will scroll internally
+        minHeight: 0,
         backgroundColor: "#fff",
         borderRadius: 10,
         padding: 10,
@@ -214,5 +219,5 @@ const styles = StyleSheet.create({
         backgroundColor: "#d9534f",
         padding: 8,
         borderRadius: 8,
-    }
+    },
 });
