@@ -11,6 +11,27 @@ export async function clearToken() {
     await deleteItemAsync(TOKEN_KEY);
 }
 
+// auth.ts
+export async function logout() {
+    try {
+        const token = await getToken();
+        if (token) {
+            await fetch(`/logout`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+        }
+    } catch (e) {
+        console.warn("Server logout failed (it's safe to ignore):", e);
+    }
+
+    await clearToken();
+    redirectToLogin();
+}
+
+
 export async function getAuthHeaders() {
     const token = await getToken();
     if (token) {
@@ -27,4 +48,3 @@ export function redirectToLogin() {
     // replace so user can't go back to protected page
     router.replace("/login");
 }
-

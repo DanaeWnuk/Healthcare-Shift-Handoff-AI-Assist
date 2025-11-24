@@ -7,7 +7,7 @@ import { router } from "expo-router";
 
 export default function BottomToolbar({ style }: { style?: ViewStyle }) {
     const onHome = () => router.navigate("/dashboard");
-    const onProfile = () => router.navigate("/dashboard");
+    const onProfile = () => router.navigate("/profile");
     const onPatient = () => router.navigate("/patient");
 
     return (

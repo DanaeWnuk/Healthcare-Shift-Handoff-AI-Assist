@@ -88,7 +88,7 @@ export default function LoginScreen() {
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
                 </Pressable>
                 <Pressable style={styles.button} onPress={handleSignUp} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+                    <Text style={styles.buttonText}>Sign Up</Text>
                 </Pressable>
             </View>
         </View>
