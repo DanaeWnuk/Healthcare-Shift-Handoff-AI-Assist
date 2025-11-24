@@ -45,33 +45,41 @@ interface MainLayoutProps {
 }
 
 function MainLayout({ patients, isTablet, selectedPatient, setSelectedPatient }: MainLayoutProps) {
-    // tablet: two columns (left/right) - both equal height
-    // mobile: two rows (top/bottom) - give patients a limited portion so it scrolls
-    const leftStyle = isTablet
-        ? { flex: 1, minHeight: 0, flexShrink: 1 } // share equally on tablet
-        : { flex: 0.38, minHeight: 0, flexShrink: 1 }; // ~38% height on phone for patient list
-
-    const rightStyle = isTablet
-        ? { flex: 1, minHeight: 0, flexShrink: 1 }
-        : { flex: 0.62, minHeight: 0, flexShrink: 1 }; // remainder for docs
-
-    const containerDirection = isTablet ? "row" : "column";
+    const flexDirection = isTablet ? "row" : "column";
 
     return (
-        <View style={[styles.container, { flexDirection: containerDirection }]}>
-            {/* Patients */}
-            <View style={leftStyle}>
-                <Text style={styles.title}>Patients</Text>
-                <PatientScroll patients={patients} onSelectPatient={setSelectedPatient} />
+        <View style={{
+            flex: 1,
+            minHeight: 0,
+            flexDirection,
+            padding: 20,
+            gap: 20
+        }}>
+            {/* LEFT / TOP */}
+            <View style={{
+                flex: 1,
+                minHeight: 0,
+                flexShrink: 1,
+            }}>
+                <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Patients</Text>
+
+                <View style={{ flex: 1, minHeight: 0 }}>
+                    <PatientScroll patients={patients} onSelectPatient={setSelectedPatient} />
+                </View>
             </View>
 
-            {/* Documentation */}
-            <View style={rightStyle}>
+            {/* RIGHT / BOTTOM */}
+            <View style={{
+                flex: 1,
+                minHeight: 0,
+                flexShrink: 1,
+            }}>
                 <DocsPanel selectedPatient={selectedPatient} />
             </View>
         </View>
     );
 }
+
 
 const styles = StyleSheet.create({
     screen: { flex: 1, minHeight: 0, backgroundColor: "#dce0f0", position: "relative" },
