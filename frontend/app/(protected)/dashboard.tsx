@@ -4,6 +4,7 @@ import { View, Text, useWindowDimensions, StyleSheet } from "react-native";
 import DocsPanel from "@/components/DocumentationPanel";
 import PatientScroll from "@/components/PatientScroll";
 import { apiFetch } from "@/lib/api";
+import { COLORS } from "@/constants/colors";
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
@@ -82,7 +83,7 @@ function MainLayout({ patients, isTablet, selectedPatient, setSelectedPatient }:
 
 
 const styles = StyleSheet.create({
-    screen: { flex: 1, minHeight: 0, backgroundColor: "#dce0f0", position: "relative" },
+    screen: { flex: 1, minHeight: 0, backgroundColor: COLORS.background, position: "relative" },
     container: { flex: 1, padding: 20, gap: 20, minHeight: 0 },
     title: { fontSize: 18, fontWeight: "bold", marginBottom: 10, flexShrink: 1 },
 });

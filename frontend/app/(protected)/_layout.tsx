@@ -15,7 +15,7 @@ export default function ProtectedLayout() {
             <Banner />
 
             <View style={styles.content}>
-                <Stack />
+                <Stack screenOptions={{ headerShown: false }} />
             </View>
 
             <BottomToolbar />
