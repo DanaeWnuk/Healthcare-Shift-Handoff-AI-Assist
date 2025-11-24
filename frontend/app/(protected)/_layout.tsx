@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import useRequireAuth from "@/hooks/useRequireAuth";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import Banner from "@/components/Banner";
@@ -15,7 +15,7 @@ export default function ProtectedLayout() {
             <Banner />
 
             <View style={styles.content}>
-                <Slot />
+                <Stack />
             </View>
 
             <BottomToolbar />
