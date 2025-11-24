@@ -3,11 +3,7 @@ pydantic==2.11.9
 supabase==2.19.0
 python-dotenv==0.21.0
 uvicorn==0.35.0
-
-# Required for LangChain usage
-langchain-core
-langchain-huggingface
-huggingface-hub
+requests (pip install requests)
 
 # JWT support
 PyJWT

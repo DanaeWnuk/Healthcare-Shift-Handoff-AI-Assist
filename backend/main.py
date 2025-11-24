@@ -3,22 +3,20 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from langchain_core.prompts.prompt import PromptTemplate
-from langchain_core.runnables.base import RunnableSequence
-from langchain_huggingface import HuggingFaceEndpoint #Provides an interface to interact with models hosted on Hugging Face.
 from fastapi.middleware.cors import CORSMiddleware #Essential for handling Cross-Origin Resource Sharing (CORS) issues.
 import os
 from datetime import datetime, timezone
 import logging
 import jwt
+import requests
 
 # Reads from .env file
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+HF_API_TOKEN = os.getenv("HF_API_TOKEN") #DO NOT FORGET!!! You MUST put your Hugging Face Token in the .env file to replace the text that says your_real_token_here, otherwise it will not work.
 
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = "your_huggingface_token_here" #When run locally use your own token. You can get a token for free by creating a hugging face account. Learn more about Hugging Face Tokens here: https://huggingface.co/docs/hub/en/security-tokens
 
 print("DEBUG: SUPABASE_URL =", SUPABASE_URL)
 print("DEBUG: SUPABASE_KEY starts with =", SUPABASE_KEY[:8] if SUPABASE_KEY else None)
@@ -26,11 +24,15 @@ print("DEBUG: SUPABASE_KEY starts with =", SUPABASE_KEY[:8] if SUPABASE_KEY else
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("Missing Supabase URL or Key in .env file")
 
+if not HF_API_TOKEN:
+    raise RuntimeError("Missing HF_API_TOKEN in .env file")
+
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI()
 security = HTTPBearer()
 
-app.add_middleware(
+app.add_middleware( #CORS configuration
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
@@ -38,45 +40,54 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# ---- Model ---- FAIR WARNING I am not 100% sure that this is where this should go within the code, but I'm putting it here for now. If you would prefer this somewhere else, please move it. #
+# ---- Model ---- 
 class NoteRequest(BaseModel):
     situation: str
     background: str
     assessment: str
     recommendation: str
+#-------------- Hugging Face Summarizer --------------
 
-# ---- LangChain Setup ---- #Again, move this if its not where you think it should be in the code. Do make sure to keep it below the Model section though. #
-template = """
-You are a helpful clinical assistant. You recieve a doctor's note written in the SBAR format:
-- Situation
-- Background
-- Assessment
-- Recommendation
+HF_MODEL_ID = "EleutherAI/gpt-neo-2.7B"
 
-Please summarize this note into a concise, medically appropriate summary for another clinician.
-Maintain important clinical details and avoid redundancy.
+HF_HEADERS = {
+    "Authorization": f"Bearer {HF_API_TOKEN}",
+    "Content-Type": "application/json"
+}
 
-SBAR Note:
-Situation: {situation}
-Background: {background}
-Assessment: {assessment}
-Recommendation: {recommendation}
+def huggingface_summarize(prompt: str) -> str: #Sends prompt to Hugging Face Serverless Inference API and returns generated text.
+    url = f"https://api-inference.huggingface.co/models/{HF_MODEL_ID}"
+    
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "temperature": 0.4,
+            "max_new_tokens": 150
+        }
+    }
 
-Summary:
-"""
+    response = requests.post(url, headers=HF_HEADERS, json=payload)
 
-prompt = PromptTemplate(
-    template = template,
-    input_variables = ["situation", "background", "assessment", "recommendation"]
-)
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=500,
+            detail = f"HF API Error {response.status_code}: {response.text}"
+        )
 
-llm = HuggingFaceEndpoint(
-    repo_id = "EleutherAI/gpt-neo-2.7B",
-    temperature = 0.4, 
-    max_new_tokens = 150
-)
+    data = response.json()
 
-chain = RunnableSequence(first = prompt, last = llm)
+    #Handles possible HF API response formats
+    if isinstance(data, list) and "generated_text" in data[0]:
+        return data[0]["generated_text"]
+
+    if isinstance(data, dict) and "generated_text" in data:
+        return data["generated_text"]
+
+    return str(data)
+
+
+
+
 # Gets current user, currently not implemented and intended for future use
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -127,33 +138,29 @@ class UserLogin(BaseModel):
 
 # --------Auth Routes----------
 
-@app.post("/summarize") #Accepts POST requests from the frontend holding the doctor's note to be summarized, then it sends the note to be summarized, then it returns the summarized note !!!MOVE IF IT'S NOT IN THE CORRECT SPOT!!!
+@app.post("/summarize")
 async def summarize(note: NoteRequest):
-    # RunnableSequence.invoke expects a single `input` argument (positional).
-    # Pass a mapping with the prompt variables so the PromptTemplate can format it.
-    input_payload = {
-        "situation": note.situation,
-        "background": note.background,
-        "assessment": note.assessment,
-        "recommendation": note.recommendation,
-    }
+    prompt = f"""
+You are a helpful clinical assistant. You receive a doctor's note written in the SBAR format:
+- Situation
+- Background
+- Assessment
+- Recommendation
 
-    # Invoke the chain with the input payload. The result may not be a plain
-    # string depending on the Runnable implementation, so coerce to str.
-    try:
-        result = chain.invoke(input_payload)
-        summary_text = str(result).strip()
-        return {"summary": summary_text}
-    except Exception as e:
-        # Log full exception for debugging (kept server-side).
-        logging.exception("LLM invocation failed")
-        # Provide a safe fallback so the API doesn't return 500 to the client.
-        fallback = (
-            f"[LLM unavailable] Situation: {note.situation} "
-            f"Background: {note.background} Assessment: {note.assessment} "
-            f"Recommendation: {note.recommendation}"
-        )
-        return {"summary": fallback, "llm_error": str(e)}
+Please summarize this note into a concise, medically appropriate summary for another clinician.
+Maintain important clinical details and avoid redundancy.
+
+SBAR Note:
+Situation: {note.situation}
+Background: {note.background}
+Assessment: {note.assessment}
+Recommendation: {note.recommendation}
+
+Summary:
+"""
+
+    summary_text = huggingface_summarize(prompt)
+    return {"summary": summary_text.strip()}
 
 @app.post("/signup")
 def signup(user: UserSignUp, request: Request):
@@ -327,6 +334,34 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
     if not response.data:
         raise HTTPException(status_code=404, detail="No procedures found")
     log_audit(request, user_email, f"VIEW_PROCEDURES_{patient_id}")
+    return response.data
+
+# Save AI Summary
+@app.post("/patients/{patient_id}/save_summary")
+def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str):
+    patient_response = supabase.table("patients").select("*").eq("id", patient_id).execute()
+    if not patient_response.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    data = {
+        "patient_id": patient_id,
+        "summary": summary_text
+    }
+    response = supabase.table("ai_summary").insert(data).execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=f"Failed to save summary: {response.error}")
+    log_audit(request, user_email, f"Save_AI_SUMMARY_{patient_id}")
+    return {"message": "AI summary saved successfully", "data": response.data}
+
+# Get AI Summary
+@app.get("/patients/{patient_id}/ai_summaries")
+def read_ai_summaries(patient_id: str, request:Request, user_email: str):
+    response = supabase.table("ai_summary").select("*").eq("patient_id", patient_id).execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")
+    if not response.data:
+        raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
+    log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
     return response.data
 
 # -------Database Connection Testing-------
