@@ -48,7 +48,7 @@ class NoteRequest(BaseModel):
     recommendation: str
 #-------------- Hugging Face Summarizer --------------
 
-HF_MODEL_ID = "EleutherAI/gpt-neo-2.7B"
+HF_MODEL_ID = "Falconsai/medical_summarization"
 
 HF_HEADERS = {
     "Authorization": f"Bearer {HF_API_TOKEN}",
@@ -56,13 +56,13 @@ HF_HEADERS = {
 }
 
 def huggingface_summarize(prompt: str) -> str: #Sends prompt to Hugging Face Serverless Inference API and returns generated text.
-    url = f"https://api-inference.huggingface.co/models/{HF_MODEL_ID}"
+    url = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL_ID}"
     
     payload = {
         "inputs": prompt,
         "parameters": {
             "temperature": 0.4,
-            "max_new_tokens": 150
+            "max_new_tokens": 200
         }
     }
 
