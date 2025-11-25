@@ -217,6 +217,34 @@ def login(user: UserLogin, request: Request):
 
     return {"message": "Logged in", "access_token": response.session.access_token}
 
+@app.post("/logout")
+def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+
+    # decode email for audit (no signature verification needed)
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        email = payload.get("email", "unknown")
+    except Exception:
+        email = "unknown"
+
+    # Supabase logout call
+    url = f"{SUPABASE_URL}/auth/v1/logout"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {token}"
+    }
+
+    try:
+        requests.post(url, headers=headers)
+    except Exception as e:
+        logging.warning("Supabase logout failed: " + str(e))
+
+    # Audit log
+    log_audit(request, email, "LOGOUT")
+
+    return {"message": "Logged out"}
+
 # Fake email for current testing will update for actual users once further along
 user_email = "testing@test.com"
 
