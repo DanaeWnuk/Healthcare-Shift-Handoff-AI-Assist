@@ -88,7 +88,7 @@ def huggingface_summarize(prompt: str) -> str: #Sends prompt to Hugging Face Ser
 
 
 
-# Gets current user, currently not implemented and intended for future use
+# Gets current user
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:
@@ -245,13 +245,11 @@ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends
 
     return {"message": "Logged out"}
 
-# Fake email for current testing will update for actual users once further along
-user_email = "testing@test.com"
 
 # ---------Patient Info----------
 #Get all patients (optional pagination)
 @app.get("/patients")
-def get_all_patients(request: Request, limit: int = 50, offset: int = 0):
+def get_all_patients(request: Request, user_email:str = Depends(get_current_user), limit: int = 50, offset: int = 0):
     response = (
         supabase.table("patients")
         .select("*")
@@ -366,7 +364,7 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
-def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str):
+def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str = Depends(get_current_user)):
     patient_response = supabase.table("patients").select("*").eq("id", patient_id).execute()
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -383,7 +381,7 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
 
 # Get AI Summary
 @app.get("/patients/{patient_id}/ai_summaries")
-def read_ai_summaries(patient_id: str, request:Request, user_email: str):
+def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("ai_summary").select("*").eq("patient_id", patient_id).execute()
     if response.error:
         raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")
