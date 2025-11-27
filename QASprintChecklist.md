@@ -69,3 +69,4 @@ This checklist covers QA for Sprint 4 and revisiting test cases from previous sp
 
 - [ ] Ensure previous Sprints checkboxes have been tested and are working.
 - [ ] Test AI summary capabilities
+- I validated the /summarize endpoint to ensure the AI summary feature works reliably and matches the expected behavior for SBAR (Situation, Background, Assessment, Recommendation) input.
