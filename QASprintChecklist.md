@@ -41,15 +41,15 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 - App starts without stack traces; health probe works.
 
 ## Auth & Identity Hardening
-- [ ] Real JWT verification
+- [ ] Real JWT verification (Tested 11/26/2025, tests acknowledged but failed.)
 - Look into jwt.decode(..., options={"verify_signature": False}) to see if its vulnerable to false credential input.
-- [ ] Protect sensitive routes
+- [ ] Protect sensitive routes (Tested 11/26/2025, tests acknowledged but failed.)
 - All /patients/** and /audits/** require Authorization: Bearer <token> via Depends(HTTPBearer).
-- [ ] Trusted identity propagation
+- [ ] Trusted identity propagation (Tested 11/26/2025, tests acknowledged but failed.)
 - get_current_user() extracts email from verified token
 
 ## Auth Routes
-- [ ] Signup/login behavior
+- [x] Signup/login behavior (Tested 11/24/2025)
 - /signup returns user_id and message; no raw password; role not trusted from request body.
 - [x] Login tokens (Tested 10/29/2025)
 - /login returns access_token (and expires_in if available).
@@ -68,5 +68,5 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 This checklist covers QA for Sprint 4 and revisiting test cases from previous sprints.
 
 - [ ] Ensure previous Sprints checkboxes have been tested and are working.
-- [ ] Test AI summary capabilities
+- [ ] Test AI summary capabilities (Tested 11/27/2025)
 - I validated the /summarize endpoint to ensure the AI summary feature works reliably and matches the expected behavior for SBAR (Situation, Background, Assessment, Recommendation) input.
