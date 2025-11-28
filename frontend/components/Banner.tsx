@@ -1,15 +1,9 @@
 // components/Banner.tsx
-import React from "react";
 import { View, StyleSheet } from "react-native";
 import * as colors from "@/constants/colors";
 import Logo from "@/assets/logo";
 
-type BannerProps = {
-    title?: string;
-    showTitle?: boolean;
-};
-
-export default function Banner(){
+export default function Banner() {
     return (
         <View style={styles.container}>
             {/* Logo */}

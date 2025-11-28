@@ -34,10 +34,10 @@ security = HTTPBearer()
 
 app.add_middleware( #CORS configuration
     CORSMiddleware,
-    allow_origins = ["*"], 
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # ---- Model ---- 
@@ -88,7 +88,7 @@ def huggingface_summarize(prompt: str) -> str: #Sends prompt to Hugging Face Ser
 
 
 
-# Gets current user, currently not implemented and intended for future use
+# Gets current user
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:
@@ -164,39 +164,108 @@ Summary:
 
 @app.post("/signup")
 def signup(user: UserSignUp, request: Request):
-    response = supabase.auth.sign_up({
-        "email": user.email,
-        "password": user.password,
-        "options":{
-            "data": {"role": user.role}
-        }
-    })
+    try:
+        response = supabase.auth.sign_up({
+            "email": user.email,
+            "password": user.password,
+            "options":{
+                "data": {"role": user.role}
+            }
+        })
+    except Exception as e:
+        # Supabase client raises on 4xx/5xx; return a clean HTTP error to the client
+        logging.warning(f"Signup failed for {user.email}: {e}")
+        # Try to provide a helpful message; avoid leaking sensitive internals
+        msg = getattr(e, 'response', None)
+        if msg:
+            try:
+                # httpx.HTTPStatusError may have a response with text/json
+                body = e.response.text
+                raise HTTPException(status_code=400, detail=f"Signup failed: {body}")
+            except Exception:
+                raise HTTPException(status_code=400, detail="Signup failed")
+        raise HTTPException(status_code=400, detail="Signup failed")
+
     if response.user is None:
-        raise HTTPException(status_code=400, detail=response.message)
-    
+        # Supabase sometimes returns a message on failure
+        detail = getattr(response, 'message', 'User creation failed')
+        raise HTTPException(status_code=400, detail=detail)
+
     log_audit(request, user.email, "SIGNUP")
 
     return {"message": "User created", "user_id": response.user.id, "role": user.role}
 
 @app.post("/login")
 def login(user: UserLogin, request: Request):
-    response = supabase.auth.sign_in_with_password({
-        "email": user.email,
-        "password": user.password
-    })
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
+    except Exception as e:
+        # supabase client raises on 4xx/5xx;
+        # return a 401 to the client instead of letting an unhandled exception bubble
+        logging.warning(f"Login failed for {user.email}: {e}")
+        raise HTTPException(status_code=401, detail="Invalid login credentials")
+
     if not response or not response.session:
-        raise HTTPException(status_code=400, detail="Invalid login")
-    
+        # Defensive: if supabase returns an unexpected shape
+        logging.warning(f"Login attempt returned no session for {user.email}: {response}")
+        raise HTTPException(status_code=401, detail="Invalid login credentials")
+
     log_audit(request, user.email, "LOGIN_SUCCESS")
 
     return {"message": "Logged in", "access_token": response.session.access_token}
 
-# Fake email for current testing will update for actual users once further along
-user_email = "testing@test.com"
+@app.post("/logout")
+def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+
+    # decode email for audit (no signature verification needed)
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        email = payload.get("email", "unknown")
+    except Exception:
+        email = "unknown"
+
+    # Supabase logout call
+    url = f"{SUPABASE_URL}/auth/v1/logout"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {token}"
+    }
+
+    try:
+        requests.post(url, headers=headers)
+    except Exception as e:
+        logging.warning("Supabase logout failed: " + str(e))
+
+    # Audit log
+    log_audit(request, email, "LOGOUT")
+
+    return {"message": "Logged out"}
+
 
 # ---------Patient Info----------
+#Get all patients (optional pagination)
+@app.get("/patients")
+def get_all_patients(request: Request, user_email:str = Depends(get_current_user), limit: int = 50, offset: int = 0):
+    response = (
+        supabase.table("patients")
+        .select("*")
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    # If the table is empty return an empty list instead of 404 so the UI
+    # can render an empty state. Audit as usual (log_audit already handles
+    # its own errors).
+    patients = response.data or []
+    log_audit(request, user_email, "VIEW_ALL_PATIENTS")
+    return {"patients": patients}
+
+# Get a patient
 @app.get("/patients/{patient_id}")
-def get_patient(patient_id: str, request: Request):
+def get_patient(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -205,7 +274,7 @@ def get_patient(patient_id: str, request: Request):
 
 # Get patients allergies
 @app.get("/patients/{patient_id}/allergies")
-def get_patient_allergies(patient_id: str, request: Request):
+def get_patient_allergies(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("allergies").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No allergies found")
@@ -214,17 +283,16 @@ def get_patient_allergies(patient_id: str, request: Request):
 
 # Get patients careplans
 @app.get("/patients/{patient_id}/careplans")
-def get_patient_careplans(patient_id: str, request: Request):
+def get_patient_careplans(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("careplans").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No careplan found")
-    user_email = "testing@test.com"
     log_audit(request, user_email, f"VIEW_CAREPLANS_{patient_id}")
     return response.data
 
 # Get patients conditions
 @app.get("/patients/{patient_id}/conditions")
-def get_patient_conditions(patient_id: str, request: Request):
+def get_patient_conditions(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("conditions").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No conditions found")
@@ -233,7 +301,7 @@ def get_patient_conditions(patient_id: str, request: Request):
 
 # Get patients devices
 @app.get("/patients/{patient_id}/devices")
-def get_patient_devices(patient_id: str, request: Request):
+def get_patient_devices(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("devices").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No devices found")
@@ -242,7 +310,7 @@ def get_patient_devices(patient_id: str, request: Request):
 
 # Get patients encounters
 @app.get("/patients/{patient_id}/encounters")
-def get_patient_encounters(patient_id: str, request: Request):
+def get_patient_encounters(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("encounters").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No encounters found")
@@ -251,7 +319,7 @@ def get_patient_encounters(patient_id: str, request: Request):
 
 # Get patients imaging studies
 @app.get("/patients/{patient_id}/imaging_studies")
-def get_patient_imaging_studies(patient_id: str, request: Request):
+def get_patient_imaging_studies(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("imaging_studies").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No imaging studies found")
@@ -260,7 +328,7 @@ def get_patient_imaging_studies(patient_id: str, request: Request):
 
 # Get patients immunizations
 @app.get("/patients/{patient_id}/immunizations")
-def get_patient_immunizations(patient_id: str, request: Request):
+def get_patient_immunizations(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("immunizations").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No immunizations found")
@@ -269,7 +337,7 @@ def get_patient_immunizations(patient_id: str, request: Request):
 
 # Get patients medications
 @app.get("/patients/{patient_id}/medications")
-def get_patient_medications(patient_id: str, request: Request):
+def get_patient_medications(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("medications").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No medications found")
@@ -278,7 +346,7 @@ def get_patient_medications(patient_id: str, request: Request):
 
 # Get patients observations
 @app.get("/patients/{patient_id}/observations")
-def get_patient_observations(patient_id: str, request: Request):
+def get_patient_observations(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("observations").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No observations found")
@@ -287,7 +355,7 @@ def get_patient_observations(patient_id: str, request: Request):
 
 # Get patients procedures
 @app.get("/patients/{patient_id}/procedures")
-def get_patient_procedures(patient_id: str, request: Request):
+def get_patient_procedures(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("procedures").select("*").eq("PATIENT", patient_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="No procedures found")
@@ -296,7 +364,7 @@ def get_patient_procedures(patient_id: str, request: Request):
 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
-def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str):
+def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str = Depends(get_current_user)):
     patient_response = supabase.table("patients").select("*").eq("id", patient_id).execute()
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -313,7 +381,7 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
 
 # Get AI Summary
 @app.get("/patients/{patient_id}/ai_summaries")
-def read_ai_summaries(patient_id: str, request:Request, user_email: str):
+def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
     response = supabase.table("ai_summary").select("*").eq("patient_id", patient_id).execute()
     if response.error:
         raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")

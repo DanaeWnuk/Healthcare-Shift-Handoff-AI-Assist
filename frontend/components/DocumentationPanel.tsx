@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// components/DocumentationPanel.tsx
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -8,30 +9,92 @@ import {
     ScrollView,
     KeyboardAvoidingView,
     Platform,
+    ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as colors from "../constants/colors";
+import { apiFetch } from "@/lib/api";
 
-export default function DocsPanel() {
+interface DocumentationPanelProps {
+    selectedPatient?: any;
+}
+
+export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) {
     const [situation, setSituation] = useState("");
     const [background, setBackground] = useState("");
     const [assessment, setAssessment] = useState("");
     const [recommendation, setRecommendation] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchDocumentation = async (patientId: string) => {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await apiFetch(`http://localhost:8000/patients/${patientId}`);
+                if (!res.ok) throw new Error("Failed to fetch documentation");
+                const data = await res.json();
+                const doc = Array.isArray(data) ? data[0] : (data && data[0]) || {};
+                setSituation(doc.situation || doc.SITUATION || "");
+                setBackground(doc.background || doc.BACKGROUND || "");
+                setAssessment(doc.assessment || doc.ASSESSMENT || "");
+                setRecommendation(doc.recommendation || doc.RECOMMENDATION || "");
+            } catch (e: any) {
+                setError(e?.message || "Failed to load documentation");
+                setSituation("");
+                setBackground("");
+                setAssessment("");
+                setRecommendation("");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const patientId =
+            selectedPatient &&
+            (selectedPatient.ID ??
+                selectedPatient.Id ??
+                selectedPatient.id ??
+                selectedPatient.patient ??
+                selectedPatient.PATIENT ??
+                selectedPatient.Patient ??
+                selectedPatient.PATIENT_ID);
+
+        if (selectedPatient) {
+            if (!patientId) {
+                setError("Selected patient has no detectable ID field");
+                return;
+            }
+            fetchDocumentation(String(patientId));
+        } else {
+            setSituation("");
+            setBackground("");
+            setAssessment("");
+            setRecommendation("");
+            setError(null);
+        }
+    }, [selectedPatient]);
 
     const handleSave = async () => {
         const note = { situation, background, assessment, recommendation };
-        console.log("Saving SBAR note:", note);
-        alert("SBAR note saved (front end only for now)");
-        
-        const res = await fetch("http://localhost:8000/summarize", { //Sends a POST request to the backend //TODO: Change local host
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(note),
-        });
-        
-        const data = await res.json(); //Waits for the backend (FastAPI) to return the summary and converts it to a JSON (WARNING: It's been a long time since I touched JavaScript, so let me know if anything seems wrong!)
+        try {
+            const res = await fetch("http://localhost:8000/summarize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(note),
+            });
+
+            const data = await res.json();
+            if (data && data.summary) {
+                alert(`Summary:\n${data.summary}`);
+            } else {
+                alert("SBAR note saved (no summary returned)");
+            }
+        } catch (e: any) {
+            console.error("Failed to save/get summary:", e);
+            alert("Failed to save note or retrieve summary");
+        }
     };
 
     const renderSection = (label: string, value: string, onChange: (t: string) => void) => (
@@ -52,26 +115,34 @@ export default function DocsPanel() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.container}
+            style={[styles.container, { flexShrink: 1 }]}
         >
-            {/* Header */}
             <View style={styles.headerRow}>
-                <Text style={styles.title}>Documentation / SBAR Notes</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={styles.title}>Documentation</Text>
+                    {selectedPatient ? (
+                        <Text style={styles.patientName} numberOfLines={1} ellipsizeMode="tail">
+                            {`${selectedPatient.FIRST || selectedPatient.first || selectedPatient.name || selectedPatient.LAST || selectedPatient.last || ""}`}
+                        </Text>
+                    ) : null}
+                    {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
+                </View>
+
                 <View style={styles.iconRow}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="create-outline" size={20} color="#000" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="add-outline" size={22} color="#000" />
-                    </TouchableOpacity>
                     <TouchableOpacity style={styles.iconButton} onPress={handleSave}>
                         <Ionicons name="save-outline" size={22} color="#000" />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Content */}
+            {/* Make ScrollView fill available space (flex:1) and be bounded */}
             <ScrollView style={styles.innerBox} contentContainerStyle={{ paddingBottom: 30 }}>
+                {error ? (
+                    <View style={{ padding: 8 }}>
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                ) : null}
+
                 {renderSection("Situation", situation, setSituation)}
                 {renderSection("Background", background, setBackground)}
                 {renderSection("Assessment", assessment, setAssessment)}
@@ -83,7 +154,8 @@ export default function DocsPanel() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 2,
+        flex: 1,
+        minHeight: 0,
         backgroundColor: colors.COLORS.primary,
         borderRadius: 15,
         padding: 15,
@@ -111,7 +183,8 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     innerBox: {
-        flex: 1,
+        flex: 1, // ensures the ScrollView is bounded and will scroll internally
+        minHeight: 0,
         backgroundColor: "#fff",
         borderRadius: 10,
         padding: 10,
@@ -134,5 +207,17 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#000",
         backgroundColor: "#fafafa",
+    },
+    patientName: {
+        color: "#fff",
+        fontSize: 13,
+        opacity: 0.9,
+        maxWidth: 180,
+    },
+    errorText: {
+        color: "#fff",
+        backgroundColor: "#d9534f",
+        padding: 8,
+        borderRadius: 8,
     },
 });
