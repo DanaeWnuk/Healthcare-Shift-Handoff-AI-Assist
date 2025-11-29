@@ -365,7 +365,7 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
 def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str = Depends(get_current_user)):
-    patient_response = supabase.table("patients").select("*").eq("id", patient_id).execute()
+    patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     
