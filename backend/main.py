@@ -373,7 +373,7 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
         "patient_id": patient_id,
         "summary": summary_text
     }
-    response = supabase.table("ai_summary").insert(data).execute()
+    response = supabase.table("ai_summaries").insert(data).execute()
     if response.error:
         raise HTTPException(status_code=500, detail=f"Failed to save summary: {response.error}")
     log_audit(request, user_email, f"Save_AI_SUMMARY_{patient_id}")
@@ -382,7 +382,7 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
 # Get AI Summary
 @app.get("/patients/{patient_id}/ai_summaries")
 def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
-    response = supabase.table("ai_summary").select("*").eq("patient_id", patient_id).execute()
+    response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
     if response.error:
         raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")
     if not response.data:
