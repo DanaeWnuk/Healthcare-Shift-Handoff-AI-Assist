@@ -406,7 +406,7 @@ def read_sbar_notes(patient_id: str, request: Request, user_email: str = Depends
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
 def save_ai_summary(patient_id: str, sbar_id: str, summary_text: str, request: Request, user_email: str = Depends(get_current_user)):
-    patient_response = supabase.table("patients").select("*").eq("id", patient_id).execute()
+    patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     
@@ -415,7 +415,7 @@ def save_ai_summary(patient_id: str, sbar_id: str, summary_text: str, request: R
         "sbar_id": sbar_id,
         "summary": summary_text
     }
-    response = supabase.table("ai_summary").insert(data).execute()
+    response = supabase.table("ai_summaries").insert(data).execute()
     if response.error:
         raise HTTPException(status_code=500, detail=f"Failed to save summary: {response.error}")
     log_audit(request, user_email, f"Save_AI_SUMMARY_{patient_id}")
@@ -424,7 +424,7 @@ def save_ai_summary(patient_id: str, sbar_id: str, summary_text: str, request: R
 # Get AI Summary
 @app.get("/patients/{patient_id}/ai_summaries")
 def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
-    response = supabase.table("ai_summary").select("*").eq("patient_id", patient_id).execute()
+    response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
     if response.error:
         raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")
     if not response.data:
