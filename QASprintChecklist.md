@@ -12,16 +12,16 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
   - Expected: App builds and opens on the Login screen without fatal errors (Tested 10/10/2025)
 
 ## Authentication Prototype
-- [ ] Successful login via **OAuth** redirects back and stores token securely
+- [x] Successful login via **OAuth** redirects back and stores token securely
   - Complete OAuth flow with valid test credentials
   - Expected: Redirects back to app, token securely stored, and user lands back on Home screen.
-- [ ] Cancel/deny login -> returns to Login screen with friendly error; no token stored
+- [x] Cancel/deny login -> returns to Login screen with friendly error; no token stored
   - Repeat but cancel/deny the OAuth flow
   - Expected: Back to login screen, clear error shown, and no token stored
-- [ ] Logout clears tokens and back stack, returns to login
+- [x] Logout clears tokens and back stack, returns to login
   - From authenicated state, tap Logout
   - Expected: Token cleared, app returns to login, and back button can not reverse to protected screen
-- [ ] Protected routes blocked with user is not authenticated
+- [x] Protected routes blocked with user is not authenticated
   - Try to navigate manually to a protected page while logged out
   - Expected: Redirect to login, no access granted
 
