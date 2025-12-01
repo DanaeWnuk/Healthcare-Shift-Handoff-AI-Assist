@@ -365,7 +365,11 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
 def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str = Depends(get_current_user)):
-    patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
+    try:
+        patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Supabase query failed: {e}")
+        
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     
@@ -373,21 +377,23 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
         "patient_id": patient_id,
         "summary": summary_text
     }
-    response = supabase.table("ai_summaries").insert(data).execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=f"Failed to save summary: {response.error}")
+    try:
+        response = supabase.table("ai_summaries").insert(data).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save summary: {e}")
     log_audit(request, user_email, f"Save_AI_SUMMARY_{patient_id}")
     return {"message": "AI summary saved successfully", "data": response.data}
 
 # Get AI Summary
 @app.get("/patients/{patient_id}/ai_summaries")
 def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
-    response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {response.error}")
+    try:
+        response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {e}")
     if not response.data:
         raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
-    log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
+    # log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
     return response.data
 
 # -------Database Connection Testing-------
