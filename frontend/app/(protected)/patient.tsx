@@ -1,15 +1,15 @@
-import { Text, ScrollView, Pressable, View, Alert } from "react-native";
+import { Text, ScrollView, View } from "react-native";
 import * as colors from "@/constants/colors";
 import { useEffect, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
+import { apiFetch } from "@/lib/api";
 
 export default function PatientScroll() {
     const [patients, setPatients] = useState<any[]>([]);
     const fetchPatients = async () => {
         try {
-            const res = await fetch("http://localhost:8000/patients");
+            const res = await apiFetch("http://localhost:8000/patients");
             const data = await res.json();
-            setPatients(data.patients);
+            setPatients(data?.patients ?? []);
         } catch (err) {
             console.error("Error fetching patients:", err);
         }
