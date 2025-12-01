@@ -365,7 +365,11 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
 # Save SBAR Note
 @app.post("/patients/{patient_id}/sbar")
 def save_sbar(patient_id: str, note:NoteRequest, request: Request, user_email: str = Depends(get_current_user)):
-    response = supabase.table("patients").select("*").eq("PATIENT", patient_id).execute()
+    try:
+        response = supabase.table("patients").select("*").eq("PATIENT", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Supabase queryfailed: {e}")
+    
     if not response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     data = {
@@ -376,9 +380,10 @@ def save_sbar(patient_id: str, note:NoteRequest, request: Request, user_email: s
         "recommendation": note.recommendation
     }
 
-    response = supabase.table("sbar_notes").insert(data).execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=f"Failed to save SBAR: {response.error}")
+    try:
+        response = supabase.table("sbar_notes").insert(data).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save SBAR: {e}")
     
     sbar_id = response.data[0]["id"]
     log_audit(request, user_email, f"Save_SBAR_{patient_id}")
@@ -390,13 +395,18 @@ def save_sbar(patient_id: str, note:NoteRequest, request: Request, user_email: s
 # Get SBAR note
 @app.get("/patients/{patient_id}/sbar_notes")
 def read_sbar_notes(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
-    response = supabase.table("patients").select("*").eq("PATIENT", patient_id).execute()
+    try:
+        response = supabase.table("patients").select("*").eq("PATIENT", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Supabase query failed: {e}")
+    
     if not response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     
-    response = supabase.table("sbar_notes").select("*").eq("patient_id", patient_id).order("created_at", desc=True).execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {response.error}")
+    try:
+        response = supabase.table("sbar_notes").select("*").eq("patient_id", patient_id).order("created_at", desc=True).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
     if not response.data:
         return {"sbar_notes": []}
     
