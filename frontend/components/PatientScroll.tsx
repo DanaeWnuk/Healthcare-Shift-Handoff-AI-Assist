@@ -1,14 +1,16 @@
 // components/PatientScroll.tsx
-import React from "react";
 import { Text, FlatList, Pressable, View, StyleSheet } from "react-native";
 import { COLORS } from "@/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
+import { Patient } from "@/constants/types";
 
 interface IPatientScrollProps {
     patients?: any[];
-    onSelectPatient?: (p: any) => void;
+    onSelectPatient?: (p: Patient) => void;
+    loadDocs: (p: Patient) => void;
 }
 
-export default function PatientScroll({ patients = [], onSelectPatient }: IPatientScrollProps) {
+export default function PatientScroll({ patients = [], onSelectPatient, loadDocs }: IPatientScrollProps) {
     const renderName = (p: any) => {
         const prefix = p?.PREFIX ?? p?.prefix ?? p?.title ?? "";
         const first = p?.FIRST ?? p?.first ?? p?.given ?? p?.FIRST_NAME ?? "";
@@ -21,9 +23,10 @@ export default function PatientScroll({ patients = [], onSelectPatient }: IPatie
         return String(id);
     };
 
-    const renderItem = ({ item: p }: { item: any }) => (
+    const renderItem = ({ item: p }: { item: Patient }) => (
         <Pressable style={styles.card} onPress={() => onSelectPatient?.(p)}>
             <Text style={styles.name}>{renderName(p)}</Text>
+            <Pressable onPress={() => loadDocs(p)}><Ionicons name="archive" size={24} style={styles.icon} /></Pressable>
         </Pressable>
     );
 
@@ -60,6 +63,10 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10,
         marginBottom: 10,
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center"
     },
     name: {
         fontWeight: "600",
@@ -73,4 +80,7 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         textAlign: "center",
     },
+    icon: {
+        color: "#fff",
+    }
 });
