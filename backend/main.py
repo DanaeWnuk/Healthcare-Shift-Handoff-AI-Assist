@@ -393,7 +393,7 @@ def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depend
         raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {e}")
     if not response.data:
         raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
-    # log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
+    log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
     return response.data
 
 # -------Database Connection Testing-------
