@@ -14,9 +14,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as colors from "../constants/colors";
 import { apiFetch } from "@/lib/api";
+import DocumentationModal from "./DocumentationModal";
+import { Patient } from "@/constants/types";
 
 interface DocumentationPanelProps {
-    selectedPatient?: any;
+    selectedPatient: Patient;
 }
 
 export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) {
@@ -26,6 +28,8 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     const [recommendation, setRecommendation] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const [docPatient, setDocPatient] = useState<Patient | null>(null);
 
     useEffect(() => {
         const fetchDocumentation = async (patientId: string) => {
@@ -53,13 +57,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
 
         const patientId =
             selectedPatient &&
-            (selectedPatient.ID ??
-                selectedPatient.Id ??
-                selectedPatient.id ??
-                selectedPatient.patient ??
-                selectedPatient.PATIENT ??
-                selectedPatient.Patient ??
-                selectedPatient.PATIENT_ID);
+            (selectedPatient.Id);
 
         if (selectedPatient) {
             if (!patientId) {
@@ -79,17 +77,18 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     const handleSave = async () => {
         const note = { situation, background, assessment, recommendation };
         try {
+            setLoading(true);
             const res = await apiFetch("http://localhost:8000/summarize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(note),
             });
 
-            const data = await res.json();
+            const data = await res.json().finally(() => { setLoading(false); setDocPatient(selectedPatient) });
             if (data && data.summary) {
-                alert(`Summary:\n${data.summary}`);
+                setMessage(data.summary);
             } else {
-                alert("SBAR note saved (no summary returned)");
+                setMessage('Error generating summary');
             }
         } catch (e: any) {
             console.error("Failed to save/get summary:", e);
@@ -122,7 +121,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                     <Text style={styles.title}>Documentation</Text>
                     {selectedPatient ? (
                         <Text style={styles.patientName} numberOfLines={1} ellipsizeMode="tail">
-                            {`${selectedPatient.FIRST || selectedPatient.first || selectedPatient.name || selectedPatient.LAST || selectedPatient.last || ""}`}
+                            {`${selectedPatient.FIRST || selectedPatient.LAST || ""}`}
                         </Text>
                     ) : null}
                     {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
@@ -154,6 +153,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                     <Text>Select a patient to begin documentation.</Text>
                 }
             </ScrollView>
+            <DocumentationModal patient={docPatient} setDocPatient={setDocPatient} patientSummary={message} />
         </KeyboardAvoidingView>
     );
 }

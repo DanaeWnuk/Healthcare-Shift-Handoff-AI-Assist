@@ -1,12 +1,12 @@
 // app/dashboard.tsx
 import { useEffect, useState } from "react";
-import { View, Text, useWindowDimensions, StyleSheet, Modal, Pressable } from "react-native";
+import { View, Text, useWindowDimensions, StyleSheet } from "react-native";
 import DocsPanel from "@/components/DocumentationPanel";
 import PatientScroll from "@/components/PatientScroll";
 import { apiFetch } from "@/lib/api";
 import { COLORS } from "@/constants/colors";
 import { Patient } from "@/constants/types";
-import { Ionicons } from "@expo/vector-icons";
+import DocumentationModal from "@/components/DocumentationModal";
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
@@ -26,7 +26,7 @@ export default function Dashboard() {
         }
     };
 
-    const fetchPatientSummary = async () => {
+    const fetchAndSetPatientSummary = async () => {
         let data = 'No Summary Data.'
         try {
             const res = await apiFetch(`http://localhost:8000/patients/${documentationPatient.Id}/ai_summaries`);
@@ -46,7 +46,8 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (documentationPatient != null) {
-            fetchPatientSummary();
+            console.log(documentationPatient)
+            fetchAndSetPatientSummary();
         }
     }, [documentationPatient])
 
@@ -108,88 +109,8 @@ function MainLayout({ patients, isTablet, selectedPatient, setSelectedPatient, l
     );
 }
 
-interface DocumentationModalProps {
-    patient?: Patient | null;
-    patientSummary?: string | null;
-    setDocPatient: (p: Patient | null) => void;
-}
-
-function DocumentationModal({ patient, patientSummary, setDocPatient }: DocumentationModalProps) {
-    return (
-        <Modal
-            visible={!!patient}
-            animationType="fade"
-            transparent
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalWrapper}>
-
-                    {/* HEADER */}
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalHeaderText}>
-                            {patient?.FIRST} {patient?.LAST}
-                        </Text>
-
-                        <Pressable onPress={() => setDocPatient(null)}>
-                            <Ionicons name="close" size={28} color="white" />
-                        </Pressable>
-                    </View>
-
-                    {/* MAIN CONTENT */}
-                    <View style={styles.modalContent}>
-                        <Text style={{ color: "#333" }}>
-                            {patientSummary}
-                        </Text>
-                    </View>
-
-                </View>
-            </View>
-        </Modal>
-    );
-}
-
 const styles = StyleSheet.create({
     screen: { flex: 1, minHeight: 0, backgroundColor: COLORS.background, position: "relative" },
     container: { flex: 1, padding: 20, gap: 20, minHeight: 0 },
     title: { fontSize: 18, fontWeight: "bold", marginBottom: 10, flexShrink: 1 },
-
-    /* Modal overlay (dims background) */
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-
-    /* Centered modal container */
-    modalWrapper: {
-        width: "90%",
-        height: "70%",
-        backgroundColor: "white",
-        borderRadius: 16,
-        overflow: "hidden",
-    },
-
-    /* Header (colored bar with close button) */
-    modalHeader: {
-        backgroundColor: COLORS.primary,
-        padding: 16,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-    },
-
-    modalHeaderText: {
-        color: "white",
-        fontSize: 20,
-        fontWeight: "600",
-    },
-
-    /* Main content area */
-    modalContent: {
-        flex: 1,
-        backgroundColor: "white",
-        padding: 20,
-    },
-
 });
