@@ -79,7 +79,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     const handleSave = async () => {
         const note = { situation, background, assessment, recommendation };
         try {
-            const res = await fetch("http://localhost:8000/summarize", {
+            const res = await apiFetch("http://localhost:8000/summarize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(note),
@@ -143,10 +143,16 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                     </View>
                 ) : null}
 
-                {renderSection("Situation", situation, setSituation)}
-                {renderSection("Background", background, setBackground)}
-                {renderSection("Assessment", assessment, setAssessment)}
-                {renderSection("Recommendation", recommendation, setRecommendation)}
+                {selectedPatient ? (
+                    <>
+                        {renderSection("Situation", situation, setSituation)}
+                        {renderSection("Background", background, setBackground)}
+                        {renderSection("Assessment", assessment, setAssessment)}
+                        {renderSection("Recommendation", recommendation, setRecommendation)}
+                    </>
+                ) :
+                    <Text>Select a patient to begin documentation.</Text>
+                }
             </ScrollView>
         </KeyboardAvoidingView>
     );
