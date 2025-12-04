@@ -368,7 +368,7 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
     try:
         patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Supabase query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
         
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -390,11 +390,11 @@ def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depend
     try:
         response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AI summaries: {e}")
     if not response.data:
         raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
     log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
-    return response.data
+    return {"ai_summaries": response.data}
 
 # -------Database Connection Testing-------
 # To test database, run this, http://127.0.0.1:8000/test-db, in a browswer and it will pull patient info for an "Annalise Glover"
