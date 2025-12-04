@@ -75,26 +75,50 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     }, [selectedPatient]);
 
     const handleSave = async () => {
+        if (!selectedPatient?.Id) {
+            alert("No patient selected");
+            return;
+        }
+
         const note = { situation, background, assessment, recommendation };
+
         try {
             setLoading(true);
+            const sbarUrl = `http://localhost:8000/patients/${selectedPatient.Id}/sbar`;
+
+            const sbarRes = await apiFetch(sbarUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(note)
+            });
+
+            const sbarData = await sbarRes.json();
+
             const res = await apiFetch("http://localhost:8000/summarize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(note),
             });
 
-            const data = await res.json().finally(() => { setLoading(false); setDocPatient(selectedPatient) });
-            if (data && data.summary) {
+            const data = await res.json();
+            setLoading(false);
+
+            if (data?.summary) {
                 setMessage(data.summary);
             } else {
-                setMessage('Error generating summary');
+                setMessage("Error generating summary");
             }
+
+            // trigger UI refresh
+            setDocPatient(selectedPatient);
+
         } catch (e: any) {
-            console.error("Failed to save/get summary:", e);
-            alert("Failed to save note or retrieve summary");
+            setLoading(false);
+            console.error("Failed during SBAR/save summary:", e);
+            alert("Failed to save SBAR or get summary");
         }
     };
+
 
     const renderSection = (label: string, value: string, onChange: (t: string) => void) => (
         <View style={styles.section}>
