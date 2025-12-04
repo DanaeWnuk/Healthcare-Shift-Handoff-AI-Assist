@@ -77,11 +77,12 @@ def huggingface_summarize(prompt: str) -> str: #Sends prompt to Hugging Face Ser
     data = response.json()
 
     #Handles possible HF API response formats
-    if isinstance(data, list) and "generated_text" in data[0]:
-        return data[0]["generated_text"]
+    if isinstance(data, list) and "summary_text" in data[0]:
+        summary = data[0]["summary_text"].strip()
+        return summary
 
-    if isinstance(data, dict) and "generated_text" in data:
-        return data["generated_text"]
+    if isinstance(data, dict) and "summary_text" in data:
+        return data["summary_text"].strip()
 
     return str(data)
 
