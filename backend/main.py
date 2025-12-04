@@ -419,10 +419,28 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
     try:
         patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Supabase query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
         
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
+    
+    try:
+        sbar_response = (
+            supabase
+            .table("sbar")
+            .select("*")
+            .eq("patient_id", patient_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
+
+    if not sbar_response.data:
+        raise HTTPException(status_code=404, detail="No SBAR notes found for this patient")
+
+    sbar_id = sbar_response.data[0]["id"]
     
     data = {
         "patient_id": patient_id,
