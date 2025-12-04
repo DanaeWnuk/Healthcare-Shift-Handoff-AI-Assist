@@ -16,7 +16,7 @@ export default function DocumentationModal({ patient, patientSummary, setDocPati
     const [loading, setLoading] = useState<boolean>(false);
     const [patSum, setPatSum] = useState<string | null>();
 
-    useEffect(() => setPatSum(patientSummary), [])
+    useEffect(() => setPatSum(patientSummary), [patientSummary])
 
     const handleSave = async () => {
         if (!patient?.Id) return;
