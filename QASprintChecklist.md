@@ -12,26 +12,23 @@ This checklist will go over test cases for Sprint 1 of the project with the focu
   - Expected: App builds and opens on the Login screen without fatal errors (Tested 10/10/2025)
 
 ## Authentication Prototype
-- [ ] Successful login via **OAuth** redirects back and stores token securely
+- [x] Successful login via **OAuth** redirects back and stores token securely
   - Complete OAuth flow with valid test credentials
   - Expected: Redirects back to app, token securely stored, and user lands back on Home screen.
-- [ ] Cancel/deny login -> returns to Login screen with friendly error; no token stored
+- [x] Cancel/deny login -> returns to Login screen with friendly error; no token stored
   - Repeat but cancel/deny the OAuth flow
   - Expected: Back to login screen, clear error shown, and no token stored
-- [ ] Logout clears tokens and back stack, returns to login
+- [x] Logout clears tokens and back stack, returns to login
   - From authenicated state, tap Logout
   - Expected: Token cleared, app returns to login, and back button can not reverse to protected screen
-- [ ] Protected routes blocked with user is not authenticated
+- [x] Protected routes blocked with user is not authenticated
   - Try to navigate manually to a protected page while logged out
   - Expected: Redirect to login, no access granted
 
-## UI Wireframes (Review and Validation) & Test Cases (QA Deliverables)
+## UI Wireframes (Review and Validation)
 - [x] Login screen wireframe matches agreed design (Tested 10/10/2025)
-- [ ] SBAR handoff template wireframe includes **Situation, Background, Assessment, and Recommendation**
+- [x] SBAR handoff template wireframe includes **Situation, Background, Assessment, and Recommendation**
 - [x] Initial QA test cases documented in repo (Tested 10/10/2025)
-- [ ] Checklist items trace back to Sprint 1 backlog goals
-  - Confirm initial QA test cases file is committed. Review coverage against Sprint 1 backlog items
-  - Expected: Test cases reviewed by Scrum Master and Product Owner
      
 # Sprint 2-3 QA Checklist
 
@@ -44,15 +41,15 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 - App starts without stack traces; health probe works.
 
 ## Auth & Identity Hardening
-- [ ] Real JWT verification
+- [ ] Real JWT verification (Tested 11/26/2025, tests acknowledged but failed.)
 - Look into jwt.decode(..., options={"verify_signature": False}) to see if its vulnerable to false credential input.
-- [ ] Protect sensitive routes
+- [ ] Protect sensitive routes (Tested 11/26/2025, tests acknowledged but failed.)
 - All /patients/** and /audits/** require Authorization: Bearer <token> via Depends(HTTPBearer).
-- [ ] Trusted identity propagation
+- [ ] Trusted identity propagation (Tested 11/26/2025, tests acknowledged but failed.)
 - get_current_user() extracts email from verified token
 
 ## Auth Routes
-- [ ] Signup/login behavior
+- [x] Signup/login behavior (Tested 11/24/2025)
 - /signup returns user_id and message; no raw password; role not trusted from request body.
 - [x] Login tokens (Tested 10/29/2025)
 - /login returns access_token (and expires_in if available).
@@ -69,3 +66,7 @@ This checklist covers QA for Sprint 2 and 3, focusing on backend security, audit
 # Sprint 4 QA Checklist
 
 This checklist covers QA for Sprint 4 and revisiting test cases from previous sprints.
+
+- [ ] Ensure previous Sprints checkboxes have been tested and are working.
+- [ ] Test AI summary capabilities (Tested 11/27/2025)
+- I validated the /summarize endpoint to ensure the AI summary feature works reliably and matches the expected behavior for SBAR (Situation, Background, Assessment, Recommendation) input.
