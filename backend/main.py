@@ -363,6 +363,57 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
     log_audit(request, user_email, f"VIEW_PROCEDURES_{patient_id}")
     return response.data
 
+# Save SBAR Note
+@app.post("/patients/{patient_id}/sbar")
+def save_sbar(patient_id: str, note:NoteRequest, request: Request, user_email: str = Depends(get_current_user)):
+    try:
+        response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
+    
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    data = {
+        "patient_id": patient_id,
+        "situation": note.situation,
+        "background": note.background,
+        "assessment": note.assessment,
+        "recommendation": note.recommendation
+    }
+
+    try:
+        response = supabase.table("sbar").insert(data).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save SBAR: {e}")
+    
+    sbar_id = response.data[0]["id"]
+    log_audit(request, user_email, f"Save_SBAR_{patient_id}")
+    return {
+        "message": "SBAR note saved",
+        "sbar_id": sbar_id
+    }
+
+# Get SBAR note
+@app.get("/patients/{patient_id}/sbar_notes")
+def read_sbar(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
+    try:
+        response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
+    
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    try:
+        response = supabase.table("sbar").select("situation, background, assessment, recommendation").eq("patient_id", patient_id).order("created_at", desc=True).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
+    if not response.data:
+        return {"sbar": []}
+    
+    log_audit(request, user_email, f"VIEW_SBAR_{patient_id}")
+    return {"sbar": response.data[0]}
+
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
 def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_email: str = Depends(get_current_user)):
@@ -374,8 +425,27 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     
+    try:
+        sbar_response = (
+            supabase
+            .table("sbar")
+            .select("*")
+            .eq("patient_id", patient_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
+
+    if not sbar_response.data:
+        raise HTTPException(status_code=404, detail="No SBAR notes found for this patient")
+
+    sbar_id = sbar_response.data[0]["id"]
+    
     data = {
         "patient_id": patient_id,
+        "sbar_id": sbar_id,
         "summary": summary_text
     }
     try:
@@ -389,13 +459,13 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
 @app.get("/patients/{patient_id}/ai_summaries")
 def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
     try:
-        response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
+        response = supabase.table("ai_summaries").select("summary").eq("patient_id", patient_id).order("created_at", desc=True).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch AI summaries: {e}")
     if not response.data:
         raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
     log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
-    return {"ai_summaries": response.data}
+    return {"summary": response.data[0]["summary"]}
 
 # -------Database Connection Testing-------
 # To test database, run this, http://127.0.0.1:8000/test-db, in a browswer and it will pull patient info for an "Annalise Glover"
