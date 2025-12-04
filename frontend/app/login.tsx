@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     },
     box: {
         marginTop: 40,
-        width: '80%',
+        width: '50%',
         backgroundColor: COLORS.accent,
         borderRadius: 20,
         padding: 20,
