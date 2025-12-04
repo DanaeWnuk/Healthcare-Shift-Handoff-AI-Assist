@@ -4,6 +4,8 @@ supabase==2.19.0
 python-dotenv==0.21.0
 uvicorn==0.35.0
 requests==2.32.5
+pyaudio==0.2.14
+openai-whisper==20250625
 
 # JWT support
 PyJWT
