@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+import uuid
+from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
@@ -8,6 +9,11 @@ import os
 from datetime import datetime, timezone
 import logging
 import jwt
+import pyaudio
+import wave
+import whisper
+import threading
+from typing import Dict
 import requests
 
 # Reads from .env file
@@ -31,6 +37,17 @@ if not HF_API_TOKEN:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI()
 security = HTTPBearer()
+audio = pyaudio.PyAudio()
+model = whisper.load_model('base') # AI model used to analyze wave file
+sessions: Dict[str, dict] = {} # Track streams for each client session
+
+app.add_middleware( #CORS configuration
+    CORSMiddleware,
+    allow_origins = ["*"], 
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
 
 app.add_middleware( #CORS configuration
     CORSMiddleware,
@@ -111,6 +128,72 @@ def log_audit(request: Request, user_email: str, action: str):
         logging.info(f"{user_email} | {action} | {endpoint}")
     except Exception as e:
         logging.warning(f"Failed to log audit event: {e}")
+
+# Stream and transcribe audio
+def recording_worker(session_id: str):
+    # Get the session ID
+    session = sessions.get(session_id)
+
+    # Stream configuration
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 16000
+    CHUNK = 1024
+    RECORD_SECONDS = 10
+    WAVE_OUTPUT_FILENAME = f"{session_id}_output.wav"
+    DEFAULT_INDEX = audio.get_default_input_device_info() # get the user's default microphone
+
+    # Audio frame buffer
+    frames = []
+
+    try:
+        while (session['is_recording']):
+            # Get the session ID for changes in values
+            session = sessions.get(session_id)
+
+            # Open the stream
+            stream = audio.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK,
+                input_device_index=DEFAULT_INDEX['index']
+            )
+
+            session['stream'] = stream # Save stream with current session id
+
+            for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+                # Check if stop called before reading next frame
+                if not (session['is_recording']):
+                        break
+                data = stream.read(CHUNK)
+                frames.append(data)
+
+            # Close this session's stream
+            if stream:
+                stream.stop_stream()
+                stream.close()
+                stream = None
+
+            # Only create the audio file and transcibe it if there is anything in the buffer
+            if frames:
+                # Convert to WAV
+                waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+                waveFile.setnchannels(CHANNELS)
+                waveFile.setsampwidth(audio.get_sample_size(FORMAT))
+                waveFile.setframerate(RATE)
+                waveFile.writeframes(b''.join(frames))
+                waveFile.close()
+
+                # Transcribe
+                audio_data = whisper.pad_or_trim(whisper.load_audio(WAVE_OUTPUT_FILENAME))
+                result = whisper.transcribe(model, audio_data, task="translate", fp16=False)
+                session['transcription'].append(result["text"])
+                os.remove(WAVE_OUTPUT_FILENAME) # No need to keep the voice file
+     
+    except Exception as e:
+        print(f"Recording error in session {session_id}: {e}")    
 
 # Gets last 10 audits available
 @app.get("/audits/recent")
@@ -361,6 +444,51 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
         raise HTTPException(status_code=404, detail="No procedures found")
     log_audit(request, user_email, f"VIEW_PROCEDURES_{patient_id}")
     return response.data
+
+# -------Voice-To-Text-------
+#Start Recording
+@app.post("/start-recording")
+def start_recording(background_tasks: BackgroundTasks):
+    session_id = str(uuid.uuid4()) # Generate a new session id
+
+    # Initialize session details
+    sessions[session_id] = {
+        'is_recording': True,
+        'transcription': [],
+        'stream': None
+    }
+    
+     # Start recording in background
+    background_tasks.add_task(recording_worker, session_id)
+
+    return {
+        "session_id": session_id, 
+        "recording_started": True, 
+        "message": "Recording started in background."
+    }
+
+#Read Transcription
+@app.get('/read-transcription/{session_id}')
+def read_transcription(session_id: str):
+    session = sessions.get(session_id)
+
+    return {
+        "session_id": session_id, 
+        "transcription": session["transcription"]
+    }
+
+#Stop Recording
+@app.post('/stop-recording/{session_id}')
+def stop_recording(session_id: str):
+    session = sessions.get(session_id)
+    session['is_recording'] = False
+    sessions.pop(session_id) # No need to keep the session information
+
+    return {
+        "session_id": session_id,
+        "recording_stopped": True, 
+        "message": "Recording stopped.",
+    }
 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
