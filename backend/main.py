@@ -404,14 +404,14 @@ def read_sbar(patient_id: str, request: Request, user_email: str = Depends(get_c
         raise HTTPException(status_code=404, detail="Patient not found")
     
     try:
-        response = supabase.table("sbar").select("*").eq("patient_id", patient_id).order("created_at", desc=True).execute()
+        sbar_response = supabase.table("sbar").select("summary").eq("patient_id", patient_id).order("created_at", desc=True).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
     if not response.data:
-        return {"sbar": []}
+        return {"summary": None}
     
     log_audit(request, user_email, f"VIEW_SBAR_{patient_id}")
-    return {"sbar": response.data}
+    return {"summary": sbar_response.data[0]["summary"]}
 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
