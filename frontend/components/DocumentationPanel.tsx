@@ -153,7 +153,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                     <Text>Select a patient to begin documentation.</Text>
                 }
             </ScrollView>
-            <DocumentationModal patient={docPatient} setDocPatient={setDocPatient} patientSummary={message} />
+            <DocumentationModal patient={docPatient} setDocPatient={setDocPatient} patientSummary={message} showSave={true} />
         </KeyboardAvoidingView>
     );
 }

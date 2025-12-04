@@ -420,6 +420,7 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
         patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
         
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -460,6 +461,7 @@ def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depend
     try:
         response = supabase.table("ai_summaries").select("summary").eq("patient_id", patient_id).order("created_at", desc=True).execute()
     except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AI summaries: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch AI summaries: {e}")
     if not response.data:
         raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
