@@ -27,18 +27,29 @@ export default function Dashboard() {
     };
 
     const fetchAndSetPatientSummary = async () => {
-        let data = 'No Summary Data.'
+        let data = 'No Summary Data.';
         try {
-            const res = await apiFetch(`http://localhost:8000/patients/${documentationPatient.Id}/ai_summaries`);
+            const res = await apiFetch(
+                `http://localhost:8000/patients/${documentationPatient.Id}/ai_summaries`
+            );
             const json = await res.json();
 
-            data = json.detail ?? JSON.stringify(json);
+            // json.summary is a string that looks like Python list syntax → convert to valid JSON
+            let summary = json.summary;
+
+            // Convert Python-style quotes to JSON-style quotes
+            summary = summary.replace(/'/g, '"');
+
+            // Parse into an actual JS object
+            const parsed = JSON.parse(summary);
+            data = parsed[0]?.summary_text ?? "No summary text found.";
         } catch (err) {
-            console.error("Error fetching patient sumarry", err);
-            data = 'Error getting summary data.'
+            console.error("Error fetching patient summary", err);
+            data = "Error getting summary data, or no summary data found.";
         }
         setPatientSummary(data);
     };
+
 
     useEffect(() => {
         fetchPatients();

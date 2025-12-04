@@ -1,5 +1,4 @@
-import uuid
-from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
@@ -9,11 +8,6 @@ import os
 from datetime import datetime, timezone
 import logging
 import jwt
-import pyaudio
-import wave
-import whisper
-import threading
-from typing import Dict
 import requests
 
 # Reads from .env file
@@ -37,17 +31,6 @@ if not HF_API_TOKEN:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI()
 security = HTTPBearer()
-audio = pyaudio.PyAudio()
-model = whisper.load_model('base') # AI model used to analyze wave file
-sessions: Dict[str, dict] = {} # Track streams for each client session
-
-app.add_middleware( #CORS configuration
-    CORSMiddleware,
-    allow_origins = ["*"], 
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
-)
 
 app.add_middleware( #CORS configuration
     CORSMiddleware,
@@ -94,11 +77,12 @@ def huggingface_summarize(prompt: str) -> str: #Sends prompt to Hugging Face Ser
     data = response.json()
 
     #Handles possible HF API response formats
-    if isinstance(data, list) and "generated_text" in data[0]:
-        return data[0]["generated_text"]
+    if isinstance(data, list) and "summary_text" in data[0]:
+        summary = data[0]["summary_text"].strip()
+        return summary
 
-    if isinstance(data, dict) and "generated_text" in data:
-        return data["generated_text"]
+    if isinstance(data, dict) and "summary_text" in data:
+        return data["summary_text"].strip()
 
     return str(data)
 
@@ -128,72 +112,6 @@ def log_audit(request: Request, user_email: str, action: str):
         logging.info(f"{user_email} | {action} | {endpoint}")
     except Exception as e:
         logging.warning(f"Failed to log audit event: {e}")
-
-# Stream and transcribe audio
-def recording_worker(session_id: str):
-    # Get the session ID
-    session = sessions.get(session_id)
-
-    # Stream configuration
-    FORMAT = pyaudio.paInt16
-    CHANNELS = 1
-    RATE = 16000
-    CHUNK = 1024
-    RECORD_SECONDS = 10
-    WAVE_OUTPUT_FILENAME = f"{session_id}_output.wav"
-    DEFAULT_INDEX = audio.get_default_input_device_info() # get the user's default microphone
-
-    # Audio frame buffer
-    frames = []
-
-    try:
-        while (session['is_recording']):
-            # Get the session ID for changes in values
-            session = sessions.get(session_id)
-
-            # Open the stream
-            stream = audio.open(
-                format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                input=True,
-                frames_per_buffer=CHUNK,
-                input_device_index=DEFAULT_INDEX['index']
-            )
-
-            session['stream'] = stream # Save stream with current session id
-
-            for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-                # Check if stop called before reading next frame
-                if not (session['is_recording']):
-                        break
-                data = stream.read(CHUNK)
-                frames.append(data)
-
-            # Close this session's stream
-            if stream:
-                stream.stop_stream()
-                stream.close()
-                stream = None
-
-            # Only create the audio file and transcibe it if there is anything in the buffer
-            if frames:
-                # Convert to WAV
-                waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-                waveFile.setnchannels(CHANNELS)
-                waveFile.setsampwidth(audio.get_sample_size(FORMAT))
-                waveFile.setframerate(RATE)
-                waveFile.writeframes(b''.join(frames))
-                waveFile.close()
-
-                # Transcribe
-                audio_data = whisper.pad_or_trim(whisper.load_audio(WAVE_OUTPUT_FILENAME))
-                result = whisper.transcribe(model, audio_data, task="translate", fp16=False)
-                session['transcription'].append(result["text"])
-                os.remove(WAVE_OUTPUT_FILENAME) # No need to keep the voice file
-     
-    except Exception as e:
-        print(f"Recording error in session {session_id}: {e}")    
 
 # Gets last 10 audits available
 @app.get("/audits/recent")
@@ -445,50 +363,56 @@ def get_patient_procedures(patient_id: str, request: Request, user_email: str = 
     log_audit(request, user_email, f"VIEW_PROCEDURES_{patient_id}")
     return response.data
 
-# -------Voice-To-Text-------
-#Start Recording
-@app.post("/start-recording")
-def start_recording(background_tasks: BackgroundTasks):
-    session_id = str(uuid.uuid4()) # Generate a new session id
-
-    # Initialize session details
-    sessions[session_id] = {
-        'is_recording': True,
-        'transcription': [],
-        'stream': None
-    }
+# Save SBAR Note
+@app.post("/patients/{patient_id}/sbar")
+def save_sbar(patient_id: str, note:NoteRequest, request: Request, user_email: str = Depends(get_current_user)):
+    try:
+        response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
     
-     # Start recording in background
-    background_tasks.add_task(recording_worker, session_id)
-
-    return {
-        "session_id": session_id, 
-        "recording_started": True, 
-        "message": "Recording started in background."
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    data = {
+        "patient_id": patient_id,
+        "situation": note.situation,
+        "background": note.background,
+        "assessment": note.assessment,
+        "recommendation": note.recommendation
     }
 
-#Read Transcription
-@app.get('/read-transcription/{session_id}')
-def read_transcription(session_id: str):
-    session = sessions.get(session_id)
-
+    try:
+        response = supabase.table("sbar").insert(data).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save SBAR: {e}")
+    
+    sbar_id = response.data[0]["id"]
+    log_audit(request, user_email, f"Save_SBAR_{patient_id}")
     return {
-        "session_id": session_id, 
-        "transcription": session["transcription"]
+        "message": "SBAR note saved",
+        "sbar_id": sbar_id
     }
 
-#Stop Recording
-@app.post('/stop-recording/{session_id}')
-def stop_recording(session_id: str):
-    session = sessions.get(session_id)
-    session['is_recording'] = False
-    sessions.pop(session_id) # No need to keep the session information
-
-    return {
-        "session_id": session_id,
-        "recording_stopped": True, 
-        "message": "Recording stopped.",
-    }
+# Get SBAR note
+@app.get("/patients/{patient_id}/sbar_notes")
+def read_sbar(patient_id: str, request: Request, user_email: str = Depends(get_current_user)):
+    try:
+        response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
+    
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    try:
+        response = supabase.table("sbar").select("situation, background, assessment, recommendation").eq("patient_id", patient_id).order("created_at", desc=True).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
+    if not response.data:
+        return {"sbar": []}
+    
+    log_audit(request, user_email, f"VIEW_SBAR_{patient_id}")
+    return {"sbar": response.data[0]}
 
 # Save AI Summary
 @app.post("/patients/{patient_id}/save_summary")
@@ -496,13 +420,32 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
     try:
         patient_response = supabase.table("patients").select("*").eq("Id", patient_id).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Supabase query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Supabase query failed: {e}")
         
     if not patient_response.data:
         raise HTTPException(status_code=404, detail="Patient not found")
     
+    try:
+        sbar_response = (
+            supabase
+            .table("sbar")
+            .select("*")
+            .eq("patient_id", patient_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SBAR notes: {e}")
+
+    if not sbar_response.data:
+        raise HTTPException(status_code=404, detail="No SBAR notes found for this patient")
+
+    sbar_id = sbar_response.data[0]["id"]
+    
     data = {
         "patient_id": patient_id,
+        "sbar_id": sbar_id,
         "summary": summary_text
     }
     try:
@@ -516,13 +459,13 @@ def save_ai_summary(patient_id: str, summary_text: str, request: Request, user_e
 @app.get("/patients/{patient_id}/ai_summaries")
 def read_ai_summaries(patient_id: str, request:Request, user_email: str = Depends(get_current_user)):
     try:
-        response = supabase.table("ai_summaries").select("*").eq("patient_id", patient_id).execute()
+        response = supabase.table("ai_summaries").select("summary").eq("patient_id", patient_id).order("created_at", desc=True).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch AU summaries: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AI summaries: {e}")
     if not response.data:
         raise HTTPException(status_code=404, detail="No AI summaries found for this patient")
     log_audit(request, user_email, f"VIEW_AI_SUMMARIES_{patient_id}")
-    return response.data
+    return {"summary": response.data[0]["summary"]}
 
 # -------Database Connection Testing-------
 # To test database, run this, http://127.0.0.1:8000/test-db, in a browswer and it will pull patient info for an "Annalise Glover"
