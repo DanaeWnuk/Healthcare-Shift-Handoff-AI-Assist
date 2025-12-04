@@ -16,25 +16,35 @@ export default function DocumentationModal({ patient, patientSummary, setDocPati
     const [loading, setLoading] = useState<boolean>(false);
     const [patSum, setPatSum] = useState<string | null>();
 
-    useEffect(() => setPatSum(patientSummary), [])
+    useEffect(() => setPatSum(patientSummary), [patientSummary])
 
     const handleSave = async () => {
+        if (!patient?.Id) return;
+
         setLoading(true);
+
         try {
-            const url = `http://localhost:8000/patients/${patient?.Id}/save_summary?summary_text=${encodeURIComponent(patSum || "")}`;
+            const url = `http://localhost:8000/patients/${patient.Id}/save_summary?summary_text=${encodeURIComponent(
+                patSum || ""
+            )}`;
 
             const res = await apiFetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json"
+                }
             });
 
-            console.log("Save summary result:", await res.json());
+            const data = await res.json();
+            console.log("AI summary saved:", data);
+
         } catch (e) {
-            console.error("Failed to save note", e);
+            console.error("Failed to save summary", e);
         } finally {
             setLoading(false);
         }
     };
+
 
 
     return (
