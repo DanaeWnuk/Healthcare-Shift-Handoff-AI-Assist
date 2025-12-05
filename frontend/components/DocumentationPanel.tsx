@@ -1,5 +1,5 @@
 // components/DocumentationPanel.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -26,6 +26,85 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
     const [background, setBackground] = useState("");
     const [assessment, setAssessment] = useState("");
     const [recommendation, setRecommendation] = useState("");
+    let [recordingState, setRecordingState ] = useState(false); // Start and stop recording mechanism needs this
+    let recordingStateRef = useRef(recordingState); // Used to stop recording when button pressed
+    let [labelState, setLabelState] = useState(""); // Used to determine which button to toggle
+    let [session_id, setSession] = useState(""); // Setup the correct route for calling backend APIs
+
+    // Delay for transcription processing
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+    // Update reference when state changes
+    const updateRecordingState = (state: boolean) => {
+        setRecordingState(state);
+        recordingStateRef.current = state;
+    };
+
+    // Toggle recording state
+    const toggleRecording = (label: string, session_id: string) => {
+        setLabelState(label);
+        if (recordingState) {
+        stopRecording();
+        } else {
+        startRecording(label);
+        }
+    };
+
+    //Tell backend to start recording when button toggled
+    const startRecording = async (label: string) => {
+        try{
+            updateRecordingState(true);
+            const response = await fetch('http://127.0.0.1:8000/start-recording', { //TODO: change localhost url to supabase url
+                method: 'POST',
+            });
+            const result = await response.json();
+            setSession(result["session_id"]); // This will not set the session ID for readTranscription
+            readTranscription(label, result["session_id"]); // We have to manually send it over
+        } catch (error) {
+            console.error('Problem starting stream', error);
+        }
+    };
+
+    //Read transcription from backend while recording
+    const readTranscription = async (label: string, sessionID: string) => {
+        try{
+            while(recordingStateRef.current){
+                const response = await fetch(`http://127.0.0.1:8000/read-transcription/${sessionID}`, { //TODO: change localhost url to supabase url
+                method: 'GET',
+                });
+                const result = await response.json();
+                if (label === "Situation") {
+                    setSituation(result["transcription"]);
+                }
+                else if (label === "Background") {
+                    setBackground(result["transcription"]);
+                }
+                else if (label === "Assessment") {
+                    setAssessment(result["transcription"]);
+                }
+                else {
+                    setRecommendation(result["transcription"]);
+                }
+                await delay(5000); // Wait a bit for whisper's analysis before reading-transcription again
+            }
+        } catch (error) {
+            console.error('Problem reading transcription', error);
+        }
+    };
+
+    //Tell backend to stop recording when button toggled
+    const stopRecording = async () => {
+        updateRecordingState(false);
+        try{
+        const response = await fetch(`http://127.0.0.1:8000/stop-recording/${session_id}`, { //TODO: change localhost url to supabase url
+            method: 'POST',
+        });
+        const result = await response.json();
+        } catch (error) {
+        console.error('Problem ending stream', error);
+        }
+    };
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
@@ -119,8 +198,7 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
         }
     };
 
-
-    const renderSection = (label: string, value: string, onChange: (t: string) => void) => (
+    const renderSection = (label: string, value: string, onChange: (t: string) => void, session_id: string) => (
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>{label}</Text>
             <TextInput
@@ -132,6 +210,14 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
                 textAlignVertical="top"
                 placeholderTextColor="#999"
             />
+            <View style={styles.audioInput}>
+                <TouchableOpacity
+                    style = {styles.iconButton}
+                    onPress = {() => toggleRecording(label, session_id)}
+                >
+                    <Ionicons name={recordingState && labelState === label ? "mic" : "mic-off"} size={20} color="#000" />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 
@@ -168,10 +254,10 @@ export default function DocsPanel({ selectedPatient }: DocumentationPanelProps) 
 
                 {selectedPatient ? (
                     <>
-                        {renderSection("Situation", situation, setSituation)}
-                        {renderSection("Background", background, setBackground)}
-                        {renderSection("Assessment", assessment, setAssessment)}
-                        {renderSection("Recommendation", recommendation, setRecommendation)}
+                        {renderSection("Situation", situation, setSituation, session_id)}
+                        {renderSection("Background", background, setBackground, session_id)}
+                        {renderSection("Assessment", assessment, setAssessment, session_id)}
+                        {renderSection("Recommendation", recommendation, setRecommendation, session_id)}
                     </>
                 ) :
                     <Text>Select a patient to begin documentation.</Text>
@@ -237,6 +323,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#000",
         backgroundColor: "#fafafa",
+    },
+    audioInput: {
+        flexDirection: "row",
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
     },
     patientName: {
         color: "#fff",
