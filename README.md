@@ -20,6 +20,13 @@ uvicorn main:app --reload
 http://localhost:8000
 ```
 
+5. Get your hugging face token: https://huggingface.co/
+- Make your own account and login
+- Go to access tokens
+- Click create new token
+- Allow read permissions and then create it.
+- Put inside .env file in backend.
+
 ## Frontend
 1. To run, clone the repo
 ```bash
